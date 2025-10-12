@@ -1,39 +1,53 @@
 import { useState } from "react";
 import { Modal } from "../Modal";
+import { projectsAPI, Project } from "../../api/client";
 
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: ProjectData) => void;
-}
-
-interface ProjectData {
-  name: string;
-  width: number;
-  height: number;
-  fps: number;
+  onProjectCreated: (project: Project) => void;
 }
 
 export const NewProjectModal = ({
   isOpen,
   onClose,
-  onSubmit,
+  onProjectCreated,
 }: NewProjectModalProps) => {
   const [name, setName] = useState("");
   const [width, setWidth] = useState(1920);
   const [height, setHeight] = useState(1080);
   const [fps, setFps] = useState(24);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSubmit({ name: name.trim(), width, height, fps });
-      // Reset form
-      setName("");
-      setWidth(1920);
-      setHeight(1080);
-      setFps(24);
-      onClose();
+      setLoading(true);
+      setError(null);
+
+      try {
+        const project = await projectsAPI.create({
+          name: name.trim(),
+          width,
+          height,
+          fps,
+        });
+
+        // Reset form
+        setName("");
+        setWidth(1920);
+        setHeight(1080);
+        setFps(24);
+
+        // Notify parent component
+        onProjectCreated(project);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create project");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -49,6 +63,13 @@ export const NewProjectModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Project" size="medium">
       <form className="modal-form" onSubmit={handleSubmit}>
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠</span>
+            {error}
+          </div>
+        )}
+
         <div className="form-group">
           <label htmlFor="project-name" className="form-label">
             Project Name
@@ -62,6 +83,7 @@ export const NewProjectModal = ({
             placeholder="Enter project name"
             required
             autoFocus
+            disabled={loading}
           />
         </div>
 
@@ -78,6 +100,7 @@ export const NewProjectModal = ({
             min={512}
             max={7680}
             required
+            disabled={loading}
           />
         </div>
 
@@ -94,6 +117,7 @@ export const NewProjectModal = ({
             min={512}
             max={4320}
             required
+            disabled={loading}
           />
         </div>
 
@@ -110,15 +134,21 @@ export const NewProjectModal = ({
             min={1}
             max={120}
             required
+            disabled={loading}
           />
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleCancel}
+            disabled={loading}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            Create Project
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? "Creating..." : "Create Project"}
           </button>
         </div>
       </form>

@@ -7,24 +7,20 @@ import { OpenProjectModal } from "./components/modals/OpenProjectModal";
 import { FindFrameModal } from "./components/modals/FindFrameModal";
 import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
 import { AboutModal } from "./components/modals/AboutModal";
+import { Project, Frame, framesAPI } from "./api/client";
 import "./App.css";
 
-// Mock frame data for development
-// TODO: Replace with actual API call to backend
-const generateMockFrames = (count: number) => {
-  return Array.from({ length: count }, (_, index) => ({
-    id: index + 1,
-    index,
-    thumbnailUrl: undefined, // Will be loaded from backend
-    path: undefined,
-  }));
-};
-
 function App() {
-  const [frames] = useState(() => generateMockFrames(100)); // Mock: 100 frames
+  // Current project state
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  
+  // Frames state
+  const [frames, setFrames] = useState<Frame[]>([]);
+  const [loadingFrames, setLoadingFrames] = useState(false);
+  
+  // Playback state
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [fps] = useState(24); // Mock FPS, will come from project settings
   const playIntervalRef = useRef<number | null>(null);
 
   // Modal states
@@ -33,6 +29,9 @@ function App() {
   const [isFindFrameModalOpen, setIsFindFrameModalOpen] = useState(false);
   const [isDeleteFrameModalOpen, setIsDeleteFrameModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+
+  // Get FPS from project or use default
+  const fps = currentProject?.fps || 24;
 
   // Handle frame change
   const handleFrameChange = useCallback(
@@ -113,21 +112,42 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentFrameIndex, handleFrameChange, handlePlayPause, frames.length]);
 
-  // Modal handlers
-  const handleNewProject = useCallback((data: {
-    name: string;
-    width: number;
-    height: number;
-    fps: number;
-  }) => {
-    // TODO: Call backend API to create project
-    console.log("Create project:", data);
+  // Load frames for current project
+  const loadProjectFrames = useCallback(async (projectId: number) => {
+    setLoadingFrames(true);
+    try {
+      const projectFrames = await framesAPI.getByProject(projectId);
+      setFrames(projectFrames);
+      setCurrentFrameIndex(0); // Reset to first frame
+    } catch (err) {
+      console.error("Failed to load frames:", err);
+      setFrames([]); // Clear frames on error
+    } finally {
+      setLoadingFrames(false);
+    }
   }, []);
 
-  const handleOpenProject = useCallback((projectId: number) => {
-    // TODO: Call backend API to load project and frames
-    console.log("Open project:", projectId);
-  }, []);
+  // Modal handlers
+  const handleNewProject = useCallback(
+    (project: Project) => {
+      setCurrentProject(project);
+      setFrames([]); // New project has no frames yet
+      setCurrentFrameIndex(0);
+      console.log("Project created:", project);
+    },
+    []
+  );
+
+  const handleOpenProject = useCallback(
+    async (project: Project) => {
+      setCurrentProject(project);
+      console.log("Opening project:", project);
+      
+      // Load frames for the selected project
+      await loadProjectFrames(project.id);
+    },
+    [loadProjectFrames]
+  );
 
   const handleFindFrame = useCallback((frameIndex: number) => {
     handleFrameChange(frameIndex);
@@ -139,8 +159,9 @@ function App() {
   }, [currentFrameIndex]);
 
   // Get current frame URL
-  // TODO: Implement actual frame loading from backend
-  const currentFrameUrl = frames[currentFrameIndex]?.thumbnailUrl;
+  const currentFrameUrl = frames[currentFrameIndex]
+    ? `http://localhost:8000/data/frames/${frames[currentFrameIndex].path.split("/").pop()}`
+    : undefined;
 
   return (
     <div className="app-container">
@@ -179,13 +200,13 @@ function App() {
       <NewProjectModal
         isOpen={isNewProjectModalOpen}
         onClose={() => setIsNewProjectModalOpen(false)}
-        onSubmit={handleNewProject}
+        onProjectCreated={handleNewProject}
       />
 
       <OpenProjectModal
         isOpen={isOpenProjectModalOpen}
         onClose={() => setIsOpenProjectModalOpen(false)}
-        onSelect={handleOpenProject}
+        onProjectSelected={handleOpenProject}
       />
 
       <FindFrameModal

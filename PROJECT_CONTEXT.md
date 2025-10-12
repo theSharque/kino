@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added English-only rule, translated Russian text to English)
+**Last Updated:** 2025-10-12 (Integrated Projects API: create and load projects from backend)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -146,6 +146,8 @@ frontend/
 │   ├── App.tsx          # Main application component (MenuBar + 70/30 layout + modals)
 │   ├── App.css          # Application layout styles
 │   ├── index.css        # Global styles and resets
+│   ├── api/             # API client and types
+│   │   └── client.ts   # Backend API client (projects, frames, health)
 │   ├── components/      # React components
 │   │   ├── README.md           # Components documentation
 │   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, Help)
@@ -640,6 +642,11 @@ npm run dev
 - [x] Frontend: AboutModal (app info, version 1.0.0)
 - [x] Frontend: First API integration (AboutModal → backend /health)
 - [x] Frontend: Backend status monitoring (online/offline, CPU, memory)
+- [x] Frontend: API client (client.ts) with types matching backend
+- [x] Frontend: Projects API integration (create, list, load)
+- [x] Frontend: Frames API integration (get by project)
+- [x] Frontend: Current project state management
+- [x] Frontend: Automatic frame loading when project selected
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints

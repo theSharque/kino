@@ -1,18 +1,11 @@
 import { useState, useEffect } from "react";
 import { Modal } from "../Modal";
+import { healthAPI, BackendHealth } from "../../api/client";
 import "./AboutModal.css";
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-interface BackendHealth {
-  status: string;
-  service: string;
-  python_version: string;
-  cpu_percent: number;
-  memory_percent: number;
 }
 
 const BACKEND_URL = "http://localhost:8000";
@@ -30,19 +23,14 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
       setLoading(true);
       setError(null);
 
-      fetch(`${BACKEND_URL}/health`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((data: BackendHealth) => {
+      healthAPI
+        .check()
+        .then((data) => {
           setBackendHealth(data);
           setLoading(false);
         })
         .catch((err) => {
-          setError(err.message || "Failed to connect to backend");
+          setError(err instanceof Error ? err.message : "Failed to connect to backend");
           setLoading(false);
         });
     }

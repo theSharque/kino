@@ -1,72 +1,67 @@
 import { useState, useEffect } from "react";
 import { Modal } from "../Modal";
+import { projectsAPI, Project } from "../../api/client";
 import "./OpenProjectModal.css";
-
-interface Project {
-  id: number;
-  name: string;
-  width: number;
-  height: number;
-  fps: number;
-  created_at: string;
-  updated_at: string;
-}
 
 interface OpenProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (projectId: number) => void;
+  onProjectSelected: (project: Project) => void;
 }
 
 export const OpenProjectModal = ({
   isOpen,
   onClose,
-  onSelect,
+  onProjectSelected,
 }: OpenProjectModalProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
     null
   );
 
-  // TODO: Fetch projects from API
+  // Fetch projects from API when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Mock data for development
-      setProjects([
-        {
-          id: 1,
-          name: "Demo Project 1",
-          width: 1920,
-          height: 1080,
-          fps: 30,
-          created_at: "2025-10-11T10:00:00",
-          updated_at: "2025-10-11T10:00:00",
-        },
-        {
-          id: 2,
-          name: "Demo Project 2",
-          width: 1280,
-          height: 720,
-          fps: 24,
-          created_at: "2025-10-11T11:00:00",
-          updated_at: "2025-10-11T11:00:00",
-        },
-      ]);
+      setLoading(true);
+      setError(null);
+      setSelectedProjectId(null);
+
+      projectsAPI
+        .getAll()
+        .then((fetchedProjects) => {
+          setProjects(fetchedProjects);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Failed to load projects");
+          setLoading(false);
+        });
     }
   }, [isOpen]);
 
   const handleOpen = () => {
     if (selectedProjectId !== null) {
-      onSelect(selectedProjectId);
-      setSelectedProjectId(null);
-      onClose();
+      const selectedProject = projects.find((p) => p.id === selectedProjectId);
+      if (selectedProject) {
+        onProjectSelected(selectedProject);
+        setSelectedProjectId(null);
+        onClose();
+      }
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Open Project" size="large">
       <div className="project-list">
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠</span>
+            {error}
+          </div>
+        )}
+
         {loading ? (
           <div className="loading">Loading projects...</div>
         ) : projects.length > 0 ? (
