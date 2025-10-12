@@ -10,7 +10,7 @@ import { AboutModal } from "./components/modals/AboutModal";
 import { SelectGeneratorModal } from "./components/modals/SelectGeneratorModal";
 import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
 import type { Project, Frame, PluginInfo } from "./api/client";
-import { framesAPI, generatorAPI } from "./api/client";
+import { framesAPI, generatorAPI, systemAPI } from "./api/client";
 import "./App.css";
 
 function App() {
@@ -237,6 +237,50 @@ function App() {
     [currentProject, loadProjectFrames]
   );
 
+  // Handle emergency stop
+  const handleEmergencyStop = useCallback(async () => {
+    if (!confirm("Stop all running generation tasks?")) {
+      return;
+    }
+
+    try {
+      const response = await systemAPI.emergencyStop();
+      alert(response.message);
+    } catch (err) {
+      console.error("Emergency stop failed:", err);
+      alert(
+        `Emergency stop failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    }
+  }, []);
+
+  // Handle server restart
+  const handleRestartServer = useCallback(async () => {
+    if (
+      !confirm(
+        "Restart the backend server? This will interrupt all running tasks. The page will need to be refreshed after the server restarts."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await systemAPI.restartServer();
+      alert(
+        "Server restart initiated. Please wait 5-10 seconds, then refresh the page."
+      );
+    } catch (err) {
+      console.error("Server restart failed:", err);
+      alert(
+        `Server restart failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    }
+  }, []);
+
   // Update document title when project changes
   useEffect(() => {
     if (currentProject) {
@@ -262,6 +306,8 @@ function App() {
         onOpenProject={() => setIsOpenProjectModalOpen(true)}
         onFindFrame={() => setIsFindFrameModalOpen(true)}
         onDeleteFrame={() => setIsDeleteFrameModalOpen(true)}
+        onEmergencyStop={handleEmergencyStop}
+        onRestartServer={handleRestartServer}
         onAbout={() => setIsAboutModalOpen(true)}
       />
 

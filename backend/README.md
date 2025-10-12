@@ -34,6 +34,23 @@ cp .env.example .env
 
 ## Running
 
+### Auto-Restart Mode (Recommended for Development)
+
+Use `run.sh` for automatic restart on crashes or when using the "Restart Server" feature:
+
+```bash
+./run.sh
+```
+
+This script will:
+- Automatically restart the server if it crashes
+- Restart when you use the "Restart Server" button in the UI
+- Stop completely on Ctrl+C or when using "Shutdown" from UI
+
+### Direct Mode
+
+For debugging or one-time runs:
+
 ```bash
 # Activate virtual environment
 source venv/bin/activate
@@ -43,6 +60,13 @@ python main.py
 ```
 
 Server will start on `http://0.0.0.0:8000`
+
+### System Control
+
+The backend provides system control endpoints accessible via the UI (System menu):
+- **Emergency Stop** - Stop all running generation tasks
+- **Restart Server** - Restart the backend (only works with `run.sh`)
+- **Shutdown** - Gracefully stop the server
 
 ## API Documentation
 

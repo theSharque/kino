@@ -131,7 +131,7 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "Python: Backend Server",
+        "name": "Python: Backend Server (Direct)",
         "type": "debugpy",
         "request": "launch",
         "program": "${workspaceFolder:Backend (Python)}/main.py",
@@ -140,6 +140,13 @@
         "env": {
           "PYTHONPATH": "${workspaceFolder:Backend (Python)}"
         }
+      },
+      {
+        "name": "Backend: Auto-Restart (run.sh)",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "./run.sh",
+        "cwd": "${workspaceFolder:Backend (Python)}"
       },
       {
         "name": "Frontend: Dev Server",
@@ -151,8 +158,13 @@
     ],
     "compounds": [
       {
-        "name": "Full Stack",
-        "configurations": ["Python: Backend Server", "Frontend: Dev Server"],
+        "name": "Full Stack (Auto-Restart)",
+        "configurations": ["Backend: Auto-Restart (run.sh)", "Frontend: Dev Server"],
+        "stopAll": true
+      },
+      {
+        "name": "Full Stack (Direct)",
+        "configurations": ["Python: Backend Server (Direct)", "Frontend: Dev Server"],
         "stopAll": true
       }
     ]
@@ -163,12 +175,19 @@
       {
         "label": "Backend: Start Server",
         "type": "shell",
-        "command": "source venv/bin/activate && python main.py",
+        "command": "./run.sh",
         "options": {
           "cwd": "${workspaceFolder:Backend (Python)}"
         },
         "problemMatcher": [],
-        "group": "none"
+        "group": "none",
+        "isBackground": false,
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "dedicated"
+        }
       },
       {
         "label": "Backend: Format Code",

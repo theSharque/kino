@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 import os
 
 from routes import setup_routes
-from database import init_db, close_db
+from database import init_db, close_db, get_db
+from services.generator_service import GeneratorService
 
 
 @web.middleware
@@ -35,6 +36,11 @@ async def on_startup(app: web.Application):
     db_path = os.getenv('DB_PATH', './data/kino.db')
     await init_db(db_path)
     print(f"Database initialized at {db_path}")
+
+    # Initialize generator service
+    db = get_db()
+    app['generator_service'] = GeneratorService(db)
+    print("Generator service initialized")
 
 
 async def on_cleanup(app: web.Application):

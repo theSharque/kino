@@ -225,6 +225,27 @@ class GeneratorService:
         """Get all available plugins"""
         return PluginRegistry.get_all_plugins()
 
+    async def stop_all_tasks(self) -> int:
+        """
+        Emergency stop all running tasks
+        Returns number of stopped tasks
+        """
+        stopped_count = 0
+
+        # Get all task IDs that are currently running
+        running_task_ids = list(self.running_tasks.keys())
+
+        for task_id in running_task_ids:
+            try:
+                success = await self.stop_generation(task_id)
+                if success:
+                    stopped_count += 1
+            except Exception as e:
+                print(f"Error stopping task {task_id}: {e}")
+                continue
+
+        return stopped_count
+
     def _row_to_task_response(self, row) -> TaskResponse:
         """Convert database row to TaskResponse"""
         return TaskResponse(

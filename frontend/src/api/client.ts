@@ -56,6 +56,7 @@ export interface PluginParameter {
   max?: number;
   category?: string; // For model_selection type
   options?: string[]; // For enum-like fields
+  item_schema?: Record<string, PluginParameter>; // For lora_list type
 }
 
 export interface PluginInfo {
@@ -320,6 +321,42 @@ export const modelsAPI = {
    */
   getModelInfo: (category: string, filename: string) =>
     fetchAPI<ModelInfo>(`/api/v1/models/${category}/${filename}`),
+};
+
+/**
+ * System Control API (v1)
+ */
+export const systemAPI = {
+  /**
+   * Emergency stop all running tasks
+   */
+  emergencyStop: async (): Promise<{
+    success: boolean;
+    message: string;
+    stopped_count: number;
+  }> => {
+    return fetchAPI("/api/v1/system/emergency-stop", {
+      method: "POST",
+    });
+  },
+
+  /**
+   * Restart backend server
+   */
+  restartServer: async (): Promise<{ success: boolean; message: string }> => {
+    return fetchAPI("/api/v1/system/restart", {
+      method: "POST",
+    });
+  },
+
+  /**
+   * Shutdown backend server
+   */
+  shutdownServer: async (): Promise<{ success: boolean; message: string }> => {
+    return fetchAPI("/api/v1/system/shutdown", {
+      method: "POST",
+    });
+  },
 };
 
 /**

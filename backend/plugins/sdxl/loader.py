@@ -74,10 +74,11 @@ class SDXLPlugin(BasePlugin):
             negative_prompt = data.get('negative_prompt', '')
             width = data.get('width', 1024)
             height = data.get('height', 1024)
-            steps = data.get('steps', 30)
-            cfg_scale = data.get('cfg_scale', 7.5)
+            steps = data.get('steps', 32)
+            cfg_scale = data.get('cfg_scale', 3.5)
             sampler = data.get('sampler', 'dpmpp_2m_sde')
             project_id = data.get('project_id', None)
+            loras = data.get('loras', [])  # List of LoRA configurations
 
             # Check for stop request
             if self.should_stop:
@@ -105,6 +106,41 @@ class SDXLPlugin(BasePlugin):
                         data={},
                         error=f"Failed to load checkpoint: {str(e)}"
                     )
+
+            if self.should_stop:
+                return PluginResult(success=False, data={}, error="Generation stopped")
+
+            # Step 1.5: Apply LoRAs if specified (10%)
+            if loras and len(loras) > 0:
+                await self.update_progress(10.0, progress_callback)
+                try:
+                    for lora_config in loras:
+                        lora_name = lora_config.get('lora_name')
+                        if not lora_name:
+                            continue
+
+                        strength_model = lora_config.get('strength_model', 1.0)
+                        strength_clip = lora_config.get('strength_clip', 1.0)
+
+                        lora_path = os.path.join(Config.MODELS_DIR, "Lora", lora_name)
+
+                        if not os.path.exists(lora_path):
+                            print(f"Warning: LoRA not found: {lora_path}")
+                            continue
+
+                        # Apply LoRA to model and clip
+                        self.model, self.clip = comfy_bricks.load_lora(
+                            lora_path,
+                            self.model,
+                            self.clip,
+                            strength_model,
+                            strength_clip
+                        )
+                        print(f"Applied LoRA: {lora_name} (model: {strength_model}, clip: {strength_clip})")
+
+                except Exception as e:
+                    print(f"Warning: Failed to apply LoRA: {str(e)}")
+                    # Continue generation without LoRA
 
             if self.should_stop:
                 return PluginResult(success=False, data={}, error="Generation stopped")
@@ -286,7 +322,7 @@ class SDXLPlugin(BasePlugin):
                 'steps': {
                     'type': 'integer',
                     'required': False,
-                    'default': 30,
+                    'default': 32,
                     'min': 1,
                     'max': 150,
                     'description': 'Number of inference steps'
@@ -294,17 +330,47 @@ class SDXLPlugin(BasePlugin):
                 'cfg_scale': {
                     'type': 'float',
                     'required': False,
-                    'default': 7.5,
+                    'default': 3.5,
                     'min': 1.0,
                     'max': 20.0,
                     'description': 'CFG (Classifier Free Guidance) scale'
                 },
                 'sampler': {
-                    'type': 'string',
+                    'type': 'selection',
                     'required': False,
                     'default': 'dpmpp_2m_sde',
                     'options': ['euler', 'euler_a', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_karras', 'dpmpp_sde', 'ddim', 'uni_pc'],
                     'description': 'Sampling algorithm'
+                },
+                'loras': {
+                    'type': 'lora_list',
+                    'required': False,
+                    'default': [],
+                    'description': 'List of LoRA models to apply',
+                    'item_schema': {
+                        'lora_name': {
+                            'type': 'model_selection',
+                            'category': 'Lora',
+                            'required': True,
+                            'description': 'LoRA model filename'
+                        },
+                        'strength_model': {
+                            'type': 'float',
+                            'required': False,
+                            'default': 1.0,
+                            'min': 0.0,
+                            'max': 2.0,
+                            'description': 'LoRA strength for model'
+                        },
+                        'strength_clip': {
+                            'type': 'float',
+                            'required': False,
+                            'default': 1.0,
+                            'min': 0.0,
+                            'max': 2.0,
+                            'description': 'LoRA strength for CLIP'
+                        }
+                    }
                 },
                 'project_id': {
                     'type': 'integer',
