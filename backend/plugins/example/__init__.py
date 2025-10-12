@@ -1,0 +1,4 @@
+"""
+Example plugin package
+"""
+

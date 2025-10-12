@@ -1,0 +1,854 @@
+# Kino Project - AI Context & Development Guide
+
+**Last Updated:** 2025-10-11 (Initial git commit: 46 files, 30,963 lines of code)
+
+This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
+
+---
+
+## Project Overview
+
+**Project Name:** Kino
+**Type:** Single Page Application (SPA)
+**Purpose:** Video project management and editing application with ML/AI functionality
+**Authentication:** None - public access application
+
+---
+
+## Tech Stack
+
+### Backend
+- **Language:** Python 3.12
+- **Framework:** aiohttp (async web framework)
+- **CORS:** aiohttp-cors
+- **API Documentation:** aiohttp-pydantic (OpenAPI/Swagger)
+- **Database:** SQLite with aiosqlite (async driver)
+- **Validation:** Pydantic v2
+- **ML/AI:** PyTorch, transformers, torchvision, torchaudio
+- **Other:** python-dotenv, psutil, einops, scipy, numpy
+
+### Frontend
+- **Language:** TypeScript
+- **Framework:** React 18
+- **Build Tool:** Vite
+- **Styling:** CSS (to be determined if additional libraries needed)
+
+### Communication
+- **Primary:** REST API
+- **Secondary:** WebSocket (to be implemented when needed for real-time features)
+
+---
+
+## Architecture & Structure
+
+### Backend Structure
+```
+backend/
+├── main.py              # Application entry point, server setup, OpenAPI config
+├── routes.py            # Route configuration and registration (v1 + v2)
+├── database.py          # Database connection management and utilities
+├── config.py            # Configuration (paths: models, data, frames, projects)
+├── API_DOCUMENTATION.md # Complete API documentation and Swagger guide
+├── handlers/            # Request handlers (controllers) organized by domain
+│   ├── __init__.py
+│   ├── health.py       # Health check endpoints
+│   ├── api.py          # General API handlers (v1)
+│   ├── api_documented.py # API v2 handlers with OpenAPI documentation
+│   ├── projects.py     # Project CRUD handlers (v1)
+│   ├── frames.py       # Frame CRUD handlers (v1)
+│   └── generator.py    # Generator/task handlers (v1)
+├── models/              # Pydantic data models
+│   ├── __init__.py
+│   ├── project.py      # Project models
+│   ├── frame.py        # Frame models
+│   └── task.py         # Task models for generator system
+├── services/            # Business logic services
+│   ├── __init__.py
+│   ├── project_service.py  # Project service layer
+│   ├── frame_service.py    # Frame service layer
+│   └── generator_service.py # Generator/task management service
+├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
+│   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode)
+│   └── frames_routine.py # Frame saving utilities
+├── comfy/               # ComfyUI backend integration (full ComfyUI codebase)
+│   ├── sd.py           # Stable Diffusion implementations
+│   ├── model_management.py # Model loading and memory management
+│   ├── sample.py       # Sampling algorithms
+│   ├── ldm/            # Latent Diffusion Models
+│   ├── text_encoders/  # CLIP, T5, and other text encoders
+│   └── [extensive ComfyUI codebase]
+├── data/                # Data storage (gitignored content)
+│   ├── frames/         # Generated frame files (.png)
+│   ├── projects/       # Project-specific data (organized by project name)
+│   └── kino.db         # SQLite database file
+├── models_storage/      # AI models storage (gitignored files, keep structure)
+│   ├── README.md       # Model storage documentation and usage guide
+│   ├── DiffusionModels/ # Diffusion model files (.gitkeep)
+│   ├── StableDiffusion/ # Stable Diffusion checkpoints (.safetensors, .ckpt)
+│   ├── Lora/           # LoRA weight files (.gitkeep)
+│   ├── TextEncoders/   # Text encoder models (.gitkeep)
+│   ├── ClipVision/     # CLIP Vision models (.gitkeep)
+│   └── VAE/            # VAE models (.gitkeep)
+├── plugins/             # Generator plugins (modular generation system)
+│   ├── __init__.py
+│   ├── base_plugin.py  # Base plugin interface (async methods)
+│   ├── plugin_loader.py # Auto-loader and registry
+│   ├── README.md       # Plugin development guide
+│   ├── example/        # Example plugin (directory = plugin name)
+│   │   ├── __init__.py
+│   │   └── loader.py  # Example plugin implementation
+│   └── sdxl/          # SDXL plugin (fully implemented with ComfyUI)
+│       ├── __init__.py
+│       ├── loader.py  # SDXL plugin implementation (uses bricks)
+│       └── README.md  # SDXL plugin documentation
+├── scripts/             # Utility scripts
+│   └── format_code.sh  # Code formatting script
+├── venv/                # Python virtual environment (gitignored)
+├── .env                 # Environment variables (gitignored)
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
+
+### Frontend Structure
+```
+frontend/
+├── src/
+│   ├── App.tsx         # Main application component
+│   ├── main.tsx        # Entry point
+│   └── [other components to be organized]
+├── public/
+├── node_modules/        # NPM dependencies (gitignored)
+├── .gitignore
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+---
+
+## Code Style & Best Practices
+
+### General Principles
+1. **Write efficient, readable, and maintainable code**
+2. **All code, comments, and file content MUST be in English**
+3. **Use type hints in Python and TypeScript types in React**
+4. **Follow async/await patterns consistently**
+5. **Keep handlers small and focused - single responsibility**
+6. **Use Pydantic models for validation on backend**
+7. **Error handling must be comprehensive and informative**
+
+### Python Code Style
+- Use type hints for function parameters and return values
+- Async functions for all I/O operations
+- Pydantic models for request/response validation
+- Descriptive docstrings for functions and classes
+- Follow PEP 8 naming conventions
+- Use `async with` for resource management
+- **No trailing whitespace** on any line
+- **Empty lines must be truly empty** (no spaces/tabs)
+- **Files must end with a newline** character
+- Use 4 spaces for indentation (no tabs)
+
+### TypeScript/React Code Style
+- Use functional components with hooks
+- TypeScript interfaces for all data structures
+- Descriptive component and variable names
+- Use const for immutable values
+- Proper error handling in async operations
+- **No trailing whitespace** on any line
+- **Empty lines must be truly empty** (no spaces/tabs)
+- **Files must end with a newline** character
+- Use 2 spaces for indentation
+
+### API Design
+- RESTful endpoints: `/api/v{version}/{resource}`
+- Consistent response format: JSON
+- HTTP status codes used correctly
+- CORS enabled for cross-origin requests
+- Validation errors return 400 with details
+- Server errors return 500 with safe error messages
+
+---
+
+## Data Models & Naming Conventions
+
+**IMPORTANT:** All data models must have identical naming between frontend and backend.
+
+### Project Model
+
+**Backend (Python/Pydantic):**
+```python
+class ProjectResponse(BaseModel):
+    id: int
+    name: str
+    width: int
+    height: int
+    fps: int
+    created_at: str
+    updated_at: str
+
+class ProjectCreate(BaseModel):
+    name: str
+    width: int
+    height: int
+    fps: int
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+    fps: Optional[int]
+```
+
+**Frontend (TypeScript):**
+```typescript
+interface Project {
+  id: number;
+  name: string;
+  width: number;
+  height: number;
+  fps: number;
+  created_at: string;  // ISO 8601 format
+  updated_at: string;  // ISO 8601 format
+}
+
+interface ProjectCreate {
+  name: string;
+  width: number;
+  height: number;
+  fps: number;
+}
+
+interface ProjectUpdate {
+  name?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+}
+```
+
+### Frame Model
+
+**Backend (Python/Pydantic):**
+```python
+class FrameResponse(BaseModel):
+    id: int
+    path: str
+    generator: str
+    project_id: int
+    created_at: str
+    updated_at: str
+
+class FrameCreate(BaseModel):
+    path: str
+    generator: str
+    project_id: int
+
+class FrameUpdate(BaseModel):
+    path: Optional[str]
+    generator: Optional[str]
+    project_id: Optional[int]
+```
+
+**Frontend (TypeScript):**
+```typescript
+interface Frame {
+  id: number;
+  path: string;
+  generator: string;
+  project_id: number;
+  created_at: string;  // ISO 8601 format
+  updated_at: string;  // ISO 8601 format
+}
+
+interface FrameCreate {
+  path: string;
+  generator: string;
+  project_id: number;
+}
+
+interface FrameUpdate {
+  path?: string;
+  generator?: string;
+  project_id?: number;
+}
+```
+
+### Task Model (Generator System)
+
+**Backend (Python/Pydantic):**
+```python
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    STOPPED = "stopped"
+
+class TaskResponse(BaseModel):
+    id: int
+    name: str
+    type: str  # Plugin type
+    data: Dict[str, Any]  # Plugin-specific data
+    status: TaskStatus
+    progress: float  # 0.0 to 100.0
+    result: Optional[Dict[str, Any]]
+    error: Optional[str]
+    created_at: str
+    updated_at: str
+    started_at: Optional[str]
+    completed_at: Optional[str]
+
+class TaskCreate(BaseModel):
+    name: str
+    type: str
+    data: Dict[str, Any]
+```
+
+**Frontend (TypeScript):**
+```typescript
+enum TaskStatus {
+  PENDING = "pending",
+  RUNNING = "running",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  STOPPED = "stopped"
+}
+
+interface Task {
+  id: number;
+  name: string;
+  type: string;  // Plugin type
+  data: Record<string, any>;
+  status: TaskStatus;
+  progress: number;  // 0.0 to 100.0
+  result: Record<string, any> | null;
+  error: string | null;
+  created_at: string;  // ISO 8601 format
+  updated_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+interface TaskCreate {
+  name: string;
+  type: string;
+  data: Record<string, any>;
+}
+```
+
+### Naming Conventions
+- **snake_case:** Python variables, function names, file names
+- **camelCase:** TypeScript/JavaScript variables and function names
+- **PascalCase:** Python classes, TypeScript interfaces, React components
+- **UPPER_CASE:** Constants in both languages
+- **Field names in API:** Use snake_case to maintain consistency with Python backend
+
+---
+
+## Current API Endpoints
+
+### API Documentation
+- **Swagger UI:** `GET /api/docs` - Interactive API documentation
+- **OpenAPI Spec:** `GET /api/docs/spec` - OpenAPI 3.0 specification (JSON)
+- **Documentation:** See `API_DOCUMENTATION.md` for detailed guide
+
+### Health & Monitoring
+- `GET /health` - Server health check with system metrics
+
+### API v1 - General (Legacy)
+- `GET /api/v1/hello?name={name}` - Simple greeting endpoint
+- `POST /api/v1/echo` - Echo message with validation
+  - Request: `{"message": "string"}`
+  - Response: `{"echo": "string", "length": number}`
+- `GET /api/v1/info` - Server and API information
+
+### API v1 - Projects
+- `GET /api/v1/projects` - List all projects
+  - Response: `{"total": number, "projects": Project[]}`
+- `GET /api/v1/projects/{id}` - Get project by ID
+  - Response: `Project`
+  - Errors: 404 if not found
+- `POST /api/v1/projects` - Create new project
+  - Request: `ProjectCreate`
+  - Response: `Project` (201 Created)
+  - Errors: 400 if validation fails
+- `PUT /api/v1/projects/{id}` - Update project (partial update supported)
+  - Request: `ProjectUpdate`
+  - Response: `Project`
+  - Errors: 404 if not found, 400 if validation fails
+- `DELETE /api/v1/projects/{id}` - Delete project (cascades to frames)
+  - Response: `{"message": "Project deleted successfully"}`
+  - Errors: 404 if not found
+- `GET /api/v1/projects/{id}/frames` - Get all frames for a specific project
+  - Response: `{"total": number, "frames": Frame[]}`
+
+### API v1 - Frames
+- `GET /api/v1/frames` - List all frames (optionally filtered by project_id)
+  - Query params: `?project_id={id}` (optional)
+  - Response: `{"total": number, "frames": Frame[]}`
+- `GET /api/v1/frames/{id}` - Get frame by ID
+  - Response: `Frame`
+  - Errors: 404 if not found
+- `POST /api/v1/frames` - Create new frame
+  - Request: `FrameCreate`
+  - Response: `Frame` (201 Created)
+  - Errors: 400 if validation fails or project_id doesn't exist
+- `PUT /api/v1/frames/{id}` - Update frame (partial update supported)
+  - Request: `FrameUpdate`
+  - Response: `Frame`
+  - Errors: 404 if not found, 400 if validation fails
+- `DELETE /api/v1/frames/{id}` - Delete frame
+  - Response: `{"message": "Frame deleted successfully"}`
+  - Errors: 404 if not found
+
+### API v1 - Generator
+- `GET /api/v1/generator/plugins` - Get all available plugins
+  - Response: `{"total": number, "plugins": Record<string, PluginInfo>}`
+- `GET /api/v1/generator/tasks` - List all tasks
+  - Response: `{"total": number, "tasks": Task[]}`
+- `GET /api/v1/generator/tasks/{id}` - Get task by ID
+  - Response: `Task`
+  - Errors: 404 if not found
+- `POST /api/v1/generator/tasks` - Create new task
+  - Request: `TaskCreate`
+  - Response: `Task` (201 Created)
+  - Errors: 400 if validation fails or plugin type not registered
+- `POST /api/v1/generator/tasks/{id}/generate` - Start generation
+  - Response: `{"message": "Generation started", "task_id": number}`
+  - Errors: 404 if not found, 400 if task not in pending status
+- `POST /api/v1/generator/tasks/{id}/stop` - Stop running task
+  - Response: `{"message": "Generation stopped", "task_id": number}`
+  - Errors: 404 if not found, 400 if task not running
+- `GET /api/v1/generator/tasks/{id}/progress` - Get task progress
+  - Response: `{"task_id": number, "status": string, "progress": number}`
+  - Errors: 404 if not found
+
+### API v2 - Projects (Documented with OpenAPI)
+**Note:** These endpoints use `PydanticView` and are automatically documented in Swagger UI.
+
+- `GET /api/v2/projects` - List all projects
+  - Response: `{"total": number, "projects": Project[]}`
+  - Auto-documented with full schema
+- `GET /api/v2/projects/{project_id}` - Get project by ID
+  - Response: `Project`
+  - Errors: 404 if not found
+- `POST /api/v2/projects` - Create new project
+  - Request: `ProjectCreate`
+  - Response: `Project` (201 Created)
+  - Automatic validation from Pydantic
+- `PUT /api/v2/projects/{project_id}` - Update project
+  - Request: `ProjectUpdate` (partial)
+  - Response: `Project`
+  - Errors: 404 if not found
+- `DELETE /api/v2/projects/{project_id}` - Delete project
+  - Response: `{"message": "Project deleted successfully"}`
+  - Errors: 404 if not found
+
+**Migration:** v1 endpoints continue to work. New development should use v2 for automatic documentation.
+
+---
+
+## Database Schema
+
+### Current Tables
+
+**projects**
+- `id` (INTEGER PRIMARY KEY AUTOINCREMENT)
+- `name` (TEXT NOT NULL) - Project name
+- `width` (INTEGER NOT NULL) - Video width in pixels
+- `height` (INTEGER NOT NULL) - Video height in pixels
+- `fps` (INTEGER NOT NULL) - Frames per second
+- `created_at` (TEXT NOT NULL) - ISO 8601 timestamp
+- `updated_at` (TEXT NOT NULL) - ISO 8601 timestamp
+
+**frames**
+- `id` (INTEGER PRIMARY KEY AUTOINCREMENT)
+- `path` (TEXT NOT NULL) - Path to frame file
+- `generator` (TEXT NOT NULL) - Generator information (ML model, workflow, etc.)
+- `project_id` (INTEGER NOT NULL) - Foreign key to projects
+- `created_at` (TEXT NOT NULL) - ISO 8601 timestamp
+- `updated_at` (TEXT NOT NULL) - ISO 8601 timestamp
+- **Foreign Key:** `project_id` → `projects(id)` ON DELETE CASCADE
+- **Index:** `idx_frames_project_id` on `project_id`
+
+**tasks** (generator system)
+- `id` (INTEGER PRIMARY KEY AUTOINCREMENT)
+- `name` (TEXT NOT NULL) - Task name
+- `type` (TEXT NOT NULL) - Plugin type
+- `data` (TEXT NOT NULL) - JSON data for plugin
+- `status` (TEXT NOT NULL DEFAULT 'pending') - Task status (pending/running/completed/failed/stopped)
+- `progress` (REAL NOT NULL DEFAULT 0.0) - Progress 0.0 to 100.0
+- `result` (TEXT) - JSON result data
+- `error` (TEXT) - Error message if failed
+- `created_at` (TEXT NOT NULL) - ISO 8601 timestamp
+- `updated_at` (TEXT NOT NULL) - ISO 8601 timestamp
+- `started_at` (TEXT) - When task started
+- `completed_at` (TEXT) - When task completed
+- **Index:** `idx_tasks_status` on `status`
+- **Index:** `idx_tasks_type` on `type`
+
+**users** (for future use)
+- `id` (INTEGER PRIMARY KEY)
+- `username` (TEXT UNIQUE NOT NULL)
+- `email` (TEXT UNIQUE NOT NULL)
+- `created_at` (TIMESTAMP)
+
+**sessions** (for future use)
+- `id` (INTEGER PRIMARY KEY)
+- `user_id` (INTEGER FK → users.id)
+- `session_token` (TEXT UNIQUE NOT NULL)
+- `created_at` (TIMESTAMP)
+- `expires_at` (TIMESTAMP)
+
+*Note: Users and sessions tables exist for future use, but no authentication is currently implemented.*
+
+---
+
+## Environment Configuration
+
+### Backend (.env)
+```
+HOST=0.0.0.0
+PORT=8000
+DB_PATH=./data/kino.db
+DEBUG=true
+LOG_LEVEL=INFO
+```
+
+### Frontend
+- Default dev server: `http://localhost:5173` (Vite default)
+- Backend URL should be configurable via environment variables
+
+---
+
+## Development Status
+
+### ✅ Completed
+- [x] Project structure setup (frontend + backend)
+- [x] Backend: aiohttp server with CORS
+- [x] Backend: Basic REST API endpoints
+- [x] Backend: Database setup with aiosqlite
+- [x] Backend: Request validation with Pydantic
+- [x] Backend: MVC architecture (Model-Service-Controller)
+- [x] Backend: Project CRUD API (full REST implementation)
+- [x] Backend: Frame CRUD API (with foreign key to Projects)
+- [x] Backend: Generator system with plugin architecture
+- [x] Backend: Task management for generation tasks
+- [x] Backend: Example plugin (template for new plugins)
+- [x] Backend: Plugin loader and registry system
+- [x] Backend: Pydantic models with validation
+- [x] Backend: Service layer for business logic
+- [x] Backend: Frame storage directory structure
+- [x] Backend: AI models storage structure (DiffusionModels, StableDiffusion, Lora, TextEncoders, ClipVision, VAE)
+- [x] Backend: ComfyUI full integration (comfy/ directory with complete backend)
+- [x] Backend: Bricks connector layer (comfy_bricks.py, frames_routine.py)
+- [x] Backend: Config module for paths management
+- [x] Backend: Database indexes for performance
+- [x] Backend: Models storage with .gitkeep structure
+- [x] Frontend: React + TypeScript + Vite setup
+- [x] Git ignore files for both projects
+- [x] Basic health check and info endpoints
+- [x] PROJECT_CONTEXT.md for AI assistance
+- [x] .cursorrules for consistent code generation
+- [x] OpenAPI/Swagger documentation with aiohttp-pydantic
+- [x] API v2 endpoints with automatic documentation
+- [x] API_DOCUMENTATION.md guide
+- [x] SDXL plugin fully implemented and tested (with ComfyUI backend)
+- [x] Plugin system with async support and progress tracking
+- [x] Successful test generation (512x512, 16 steps, ~53 seconds)
+
+### 🔄 In Progress
+- [ ] Frontend: Connect to backend API
+- [ ] Frontend: Project management UI
+- [ ] Frontend: Generator UI (task management)
+- [ ] Frontend: Basic UI layout and components
+- [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
+
+### 📋 Planned
+- [ ] More generator plugins (Stable Diffusion, ComfyUI workflows, etc.)
+- [ ] Video timeline and editing features
+- [ ] WebSocket support for real-time generation progress
+- [ ] Frontend state management (context or library TBD)
+- [ ] Error boundary and loading states
+- [ ] Production deployment configuration
+- [ ] Model management API (upload, list, delete models)
+- [ ] Batch generation support
+- [ ] Task queue management with priorities
+
+---
+
+## Key Decisions & Rationale
+
+1. **Why aiohttp over FastAPI?**
+   - Already specified in requirements
+   - Gives more control over WebSocket implementation
+   - Lightweight and performant for async operations
+
+2. **Why SQLite?**
+   - Lightweight, no separate server needed
+   - Sufficient for single-node deployment
+   - Easy to backup and migrate
+   - aiosqlite provides async interface
+
+3. **Why no authentication?**
+   - Project requirement: public single-page application
+   - Simplifies architecture and development
+   - Can be added later if requirements change
+
+4. **Why Vite over Create React App?**
+   - Faster development server
+   - Better TypeScript support
+   - Modern build tool with excellent defaults
+   - Smaller bundle sizes
+
+5. **Why ComfyUI?**
+   - Powerful workflow-based approach for image generation
+   - Supports multiple models and custom nodes
+   - Well-maintained and active community
+   - Flexible integration possibilities
+
+6. **AI Models Storage Structure**
+   - Organized by model type for easy management
+   - Separate directories prevent confusion
+   - Allows for multiple models of same type
+   - Makes it easy to add/remove models
+
+7. **Plugin-based Generator Architecture**
+   - Modular design allows easy addition of new generators
+   - Each plugin in its own directory (directory name = plugin type)
+   - Main file of each plugin is `loader.py`
+   - Auto-discovery and loading on server start
+   - Plugins implement BasePlugin interface
+   - Supports async generation with progress callbacks
+   - Can stop running tasks
+   - Uniform API regardless of plugin implementation
+
+8. **Bricks Layer (ComfyUI Connector)**
+   - Abstraction layer between Kino and ComfyUI
+   - `comfy_bricks.py`: Wraps ComfyUI functions (load checkpoint, encode prompts, sample, decode VAE)
+   - `frames_routine.py`: Frame saving utilities
+   - Makes ComfyUI integration simpler and cleaner
+   - Plugins use bricks instead of calling ComfyUI directly
+   - Easy to swap or update ComfyUI backend without changing plugins
+
+9. **ComfyUI Backend Integration**
+   - Full ComfyUI codebase integrated in `comfy/` directory
+   - Not tracked in git (too large), but structure preserved
+   - Provides powerful model loading, sampling, and encoding capabilities
+   - Supports multiple model architectures (SD, SDXL, Flux, etc.)
+   - Extensive sampler selection (euler, dpmpp, etc.)
+   - Memory-efficient model management
+
+10. **Configuration Management**
+    - Centralized `config.py` for all paths
+    - `MODELS_DIR`: AI models storage
+    - `DATA_DIR`: Database and generated files
+    - `FRAMES_DIR`: Generated frame images
+    - `PROJECTS_DIR`: Project-specific data
+    - Auto-creates directories on import
+
+---
+
+## Testing Strategy
+
+### Backend
+- Manual testing with curl for API endpoints
+- Server startup/shutdown lifecycle verified
+- Database initialization tested
+- **Plugin testing:**
+  - SDXL plugin tested with real model (cyberrealisticPony_v130.safetensors, 6.5GB)
+  - Successful image generation: 512x512, 16 steps, ~53 seconds
+  - Progress tracking verified (0-100%)
+  - Model caching works correctly
+  - ComfyUI integration functioning properly
+- **API documentation:**
+  - Swagger UI tested at `/api/docs`
+  - OpenAPI spec generation verified
+  - API v2 endpoints with PydanticView working
+
+### Frontend
+- To be implemented
+
+---
+
+## Notes for AI Code Generation
+
+### 🔴 CRITICAL RULES (Project Rules - Always Follow)
+
+1. **ALWAYS UPDATE THIS FILE** (`PROJECT_CONTEXT.md`) after ANY changes:
+   - New features, architectural changes, dependencies
+   - This file is the single source of truth
+   - Maintains continuity between sessions
+   - Update "Last Updated" date at the top
+
+2. **ALWAYS USE CONTEXT7** for library documentation:
+   - Use Context7 MCP tools for: aiohttp, aiohttp-pydantic, Pydantic v2, PyTorch, React 18, Vite
+   - Never assume API details - fetch actual documentation
+   - Ensures up-to-date and correct usage
+
+3. **FOLLOW TECH STACK** defined in this file:
+   - Backend: Python 3.12, aiohttp, aiohttp-pydantic, Pydantic v2, aiosqlite, PyTorch, ComfyUI
+   - Frontend: TypeScript, React 18, Vite
+   - Database: SQLite with aiosqlite
+   - API: REST + OpenAPI/Swagger
+
+### Standard Development Rules
+
+4. **Check this file first** before generating code to ensure consistency
+5. **Follow established patterns** in existing code
+6. **Use English** for all code, comments, and documentation
+7. **Maintain type safety** with Pydantic (backend) and TypeScript (frontend)
+8. **Keep models synchronized** between frontend and backend
+9. **Test endpoints** after creation using curl or similar tools
+10. **Document new endpoints** in this file's API section
+11. **Update status sections** as features are completed
+
+### Documentation Update Chain
+When making changes, update in this order:
+1. Code implementation
+2. Docstrings and inline comments
+3. MODULE/README.md (if exists)
+4. **PROJECT_CONTEXT.md** (ALWAYS - this file)
+5. Update "Last Updated" date
+
+---
+
+## Common Patterns
+
+### Adding a New API Endpoint
+
+1. Create handler in appropriate file under `handlers/`
+2. Add route in `routes.py` with CORS configuration
+3. Define Pydantic models for validation
+4. Update this file's API documentation
+5. Test with curl
+6. Create corresponding TypeScript interface in frontend
+
+### Adding a Database Table
+
+1. Add schema in `database.py` `_init_tables()` method
+2. Create access methods in `database.py`
+3. Add Pydantic models for the data
+4. Update this file's database schema section
+
+### MVC Pattern for New Resource (Example: Projects)
+
+1. **Model** (`models/resource.py`):
+   - Create Pydantic models: `ResourceCreate`, `ResourceUpdate`, `ResourceResponse`
+   - Add validation rules with Pydantic validators
+
+2. **Service** (`services/resource_service.py`):
+   - Create `ResourceService` class with database instance
+   - Implement business logic methods: `get_all`, `get_by_id`, `create`, `update`, `delete`
+   - Use type hints for parameters and return values
+
+3. **Controller** (`handlers/resource.py`):
+   - Create async handler functions for each endpoint
+   - Handle request parsing and validation
+   - Call service methods
+   - Return appropriate responses with status codes
+   - Handle errors and return proper error responses
+
+4. **Routes** (`routes.py`):
+   - Import handlers
+   - Register routes with CORS
+   - Follow RESTful conventions
+
+5. **Database** (`database.py`):
+   - Add table schema in `_init_tables()`
+   - Ensure proper indexes and constraints
+
+### Using Bricks (ComfyUI Connector)
+
+The `bricks` layer provides convenient wrappers for ComfyUI operations:
+
+```python
+import bricks.comfy_bricks as comfy_bricks
+from config import Config
+
+# 1. Load checkpoint
+ckpt_path = os.path.join(Config.MODELS_DIR, "StableDiffusion", "model.safetensors")
+(model, clip, vae, _) = comfy_bricks.load_checkpoint_plugin(ckpt_path)
+
+# 2. Encode prompts
+positive = comfy_bricks.clip_encode(clip, "beautiful landscape")
+negative = comfy_bricks.clip_encode(clip, "blurry, low quality")
+
+# 3. Generate latent image
+latent = comfy_bricks.generate_latent_image(width=512, height=512)
+
+# 4. Run KSampler
+sample = comfy_bricks.common_ksampler(
+    model, latent, positive, negative,
+    steps=20, cfg=7.5, sampler_name='dpmpp_2m_sde'
+)
+
+# 5. Decode VAE
+image = comfy_bricks.vae_decode(vae, sample)
+
+# 6. Save frame
+from bricks.frames_routine import save_frame
+frames = save_frame(project_name, frame_id, image)
+```
+
+**Available samplers:** `euler`, `euler_a`, `dpmpp_2m`, `dpmpp_2m_sde`, `dpmpp_2m_karras`, `dpmpp_sde`, `ddim`, `uni_pc`
+
+### Creating a New Generator Plugin
+
+1. **Create plugin directory** in `plugins/`:
+   ```bash
+   mkdir backend/plugins/my_plugin
+   ```
+
+2. **Create `__init__.py`**:
+   ```python
+   # plugins/my_plugin/__init__.py
+   """My plugin package"""
+   ```
+
+3. **Create `loader.py`** with BasePlugin implementation:
+   ```python
+   # plugins/my_plugin/loader.py
+   from typing import Dict, Any, Optional, Callable
+   from ..base_plugin import BasePlugin, PluginResult
+
+   class MyPlugin(BasePlugin):
+       async def generate(self, task_id, data, progress_callback):
+           # Your code here
+           self.update_progress(50.0, progress_callback)
+           return PluginResult(success=True, data={...})
+
+       async def stop(self):
+           self.should_stop = True
+
+       @classmethod
+       def get_plugin_info(cls):
+           return {'name': 'my_plugin', ...}
+   ```
+
+4. **Restart server** - Plugin will be auto-loaded
+
+5. **Use in tasks**:
+   ```json
+   {"type": "my_plugin", "data": {...}}
+   ```
+
+**Note:** Directory name becomes the plugin type in the API!
+
+---
+
+## Future Considerations
+
+- Rate limiting if needed
+- Caching strategy for ML model inference
+- File upload handling (if required)
+- Logging and monitoring improvements
+- Docker containerization
+- CI/CD pipeline
+
+---
+
+**Remember:** This file is the source of truth for project context. Keep it updated!
+

@@ -1,0 +1,206 @@
+{
+  "folders": [
+    {
+      "name": "Backend (Python)",
+      "path": "./backend"
+    },
+    {
+      "name": "Frontend (React)",
+      "path": "./frontend"
+    },
+    {
+      "name": "Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Python settings
+    "python.defaultInterpreterPath": "${workspaceFolder:Backend (Python)}/venv/bin/python",
+    "python.analysis.extraPaths": [
+      "${workspaceFolder:Backend (Python)}"
+    ],
+    "python.terminal.activateEnvironment": true,
+    "python.formatting.provider": "none",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+
+    // Editor settings for Python
+    "[python]": {
+      "editor.tabSize": 4,
+      "editor.insertSpaces": true,
+      "editor.formatOnSave": false,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true,
+      "files.trimFinalNewlines": false
+    },
+
+    // Editor settings for TypeScript/JavaScript
+    "[typescript]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+    "[typescriptreact]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+    "[javascript]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+    "[javascriptreact]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+
+    // JSON and config files
+    "[json]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+    "[jsonc]": {
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+
+    // Markdown
+    "[markdown]": {
+      "editor.tabSize": 2,
+      "files.trimTrailingWhitespace": true,
+      "files.insertFinalNewline": true
+    },
+
+    // General editor settings
+    "editor.rulers": [100, 120],
+    "editor.renderWhitespace": "trailing",
+    "files.eol": "\n",
+    "files.encoding": "utf8",
+
+    // Exclude patterns
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/.pytest_cache": true,
+      "**/node_modules": true,
+      "**/.git": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/venv": true,
+      "**/__pycache__": true,
+      "**/dist": true,
+      "**/.angular": true
+    },
+
+    // Terminal
+    "terminal.integrated.cwd": "${workspaceFolder:Root}",
+
+    // Git
+    "git.ignoreLimitWarning": true,
+    "cursorpyright.analysis.extraPaths": [
+      "${workspaceFolder:Backend (Python)}"
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.venv-manager",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-typescript-next"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Backend Server",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder:Backend (Python)}/main.py",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder:Backend (Python)}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder:Backend (Python)}"
+        }
+      },
+      {
+        "name": "Frontend: Dev Server",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "cwd": "${workspaceFolder:Frontend (React)}",
+        "console": "integratedTerminal"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Full Stack",
+        "configurations": ["Python: Backend Server", "Frontend: Dev Server"],
+        "stopAll": true
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Backend: Start Server",
+        "type": "shell",
+        "command": "source venv/bin/activate && python main.py",
+        "options": {
+          "cwd": "${workspaceFolder:Backend (Python)}"
+        },
+        "problemMatcher": [],
+        "group": "none"
+      },
+      {
+        "label": "Backend: Format Code",
+        "type": "shell",
+        "command": "./scripts/format_code.sh",
+        "options": {
+          "cwd": "${workspaceFolder:Backend (Python)}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Frontend: Start Dev Server",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder:Frontend (React)}"
+        },
+        "problemMatcher": [],
+        "group": "none"
+      },
+      {
+        "label": "Frontend: Build",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+          "cwd": "${workspaceFolder:Frontend (React)}"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
+}
+

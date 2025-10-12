@@ -1,0 +1,165 @@
+# ============================================
+# Kino Project - Monorepo .gitignore
+# ============================================
+
+# ========== BACKEND (Python) ==========
+
+# Virtual environment
+backend/venv/
+backend/env/
+backend/ENV/
+backend/.venv/
+
+# Python
+*.pyc
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build and distribution
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# Database
+*.db
+*.sqlite3
+
+# Backend Data directory (keep directory structure, ignore all content except .gitkeep)
+backend/data/*
+!backend/data/frames/
+!backend/data/projects/
+backend/data/frames/*
+!backend/data/frames/.gitkeep
+backend/data/projects/*
+!backend/data/projects/.gitkeep
+
+# AI Model files (keep directory structure)
+backend/models_storage/DiffusionModels/*
+!backend/models_storage/DiffusionModels/.gitkeep
+backend/models_storage/StableDiffusion/*
+!backend/models_storage/StableDiffusion/.gitkeep
+backend/models_storage/Lora/*
+!backend/models_storage/Lora/.gitkeep
+backend/models_storage/TextEncoders/*
+!backend/models_storage/TextEncoders/.gitkeep
+backend/models_storage/ClipVision/*
+!backend/models_storage/ClipVision/.gitkeep
+backend/models_storage/VAE/*
+!backend/models_storage/VAE/.gitkeep
+
+# ComfyUI files (keep directory structure)
+backend/comfy/*
+!backend/comfy/.gitkeep
+
+# Model files (large binary files should not be tracked in git)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.pb
+*.h5
+*.pkl
+*.pickle
+
+# Backend Environment variables
+backend/.env
+backend/.env.local
+
+# Backend Logs
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+backend/*.log
+
+# ========== FRONTEND (React/TypeScript) ==========
+
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Testing
+frontend/coverage
+
+# Production builds
+frontend/build
+frontend/dist
+frontend/dist-ssr
+frontend/*.local
+
+# Frontend Environment
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Frontend Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# Editor directories and files
+frontend/.vscode/*
+!frontend/.vscode/extensions.json
+frontend/.idea
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+frontend/*.sw?
+
+# ========== COMMON ==========
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
