@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "../Modal";
-import { projectsAPI, Project } from "../../api/client";
+import type { Project } from "../../api/client";
+import { projectsAPI } from "../../api/client";
 
 interface NewProjectModalProps {
   isOpen: boolean;

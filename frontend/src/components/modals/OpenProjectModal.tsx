@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "../Modal";
-import { projectsAPI, Project } from "../../api/client";
+import type { Project } from "../../api/client";
+import { projectsAPI } from "../../api/client";
 import "./OpenProjectModal.css";
 
 interface OpenProjectModalProps {

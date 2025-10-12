@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
-import { Frame } from "../api/client";
+import type { Frame } from "../api/client";
 import "./Timeline.css";
 
 interface TimelineProps {

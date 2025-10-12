@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "../Modal";
-import { healthAPI, BackendHealth } from "../../api/client";
+import type { BackendHealth } from "../../api/client";
+import { healthAPI } from "../../api/client";
 import "./AboutModal.css";
 
 interface AboutModalProps {

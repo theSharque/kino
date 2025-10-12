@@ -3,13 +3,31 @@ Main entry point for the aiohttp server
 """
 import asyncio
 from aiohttp import web
-import aiohttp_cors
 from aiohttp_pydantic import oas
 from dotenv import load_dotenv
 import os
 
 from routes import setup_routes
 from database import init_db, close_db
+
+
+@web.middleware
+async def cors_middleware(request, handler):
+    """CORS middleware for all requests"""
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        response = web.Response()
+    else:
+        response = await handler(request)
+    
+    # Add CORS headers to all responses
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = '*'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Expose-Headers'] = '*'
+    
+    return response
 
 
 async def on_startup(app: web.Application):
@@ -29,24 +47,14 @@ def create_app() -> web.Application:
     """Create and configure the aiohttp application"""
     load_dotenv()
 
-    app = web.Application()
+    app = web.Application(middlewares=[cors_middleware])
 
     # Setup lifecycle handlers
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
 
-    # Setup CORS
-    cors = aiohttp_cors.setup(app, defaults={
-        "*": aiohttp_cors.ResourceOptions(
-            allow_credentials=True,
-            expose_headers="*",
-            allow_headers="*",
-            allow_methods="*"
-        )
-    })
-
-    # Setup routes
-    setup_routes(app, cors)
+    # Setup routes (CORS handled by middleware, no cors parameter needed)
+    setup_routes(app)
 
     # Setup OpenAPI documentation (Swagger UI)
     oas.setup(

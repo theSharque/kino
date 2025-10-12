@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Fixed workspace.json: nvm activation for all frontend npm commands)
+**Last Updated:** 2025-10-12 (Fixed CORS with middleware, fixed TypeScript type imports - app working!)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -20,7 +20,7 @@ This file serves as a persistent context storage for AI assistance. It contains 
 ### Backend
 - **Language:** Python 3.12
 - **Framework:** aiohttp (async web framework)
-- **CORS:** aiohttp-cors
+- **CORS:** Custom middleware (supports all routes including PydanticView)
 - **API Documentation:** aiohttp-pydantic (OpenAPI/Swagger)
 - **Database:** SQLite with aiosqlite (async driver)
 - **Validation:** Pydantic v2

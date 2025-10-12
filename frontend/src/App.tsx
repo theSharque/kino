@@ -7,7 +7,8 @@ import { OpenProjectModal } from "./components/modals/OpenProjectModal";
 import { FindFrameModal } from "./components/modals/FindFrameModal";
 import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
 import { AboutModal } from "./components/modals/AboutModal";
-import { Project, Frame, framesAPI } from "./api/client";
+import type { Project, Frame } from "./api/client";
+import { framesAPI } from "./api/client";
 import "./App.css";
 
 function App() {
