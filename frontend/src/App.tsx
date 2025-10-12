@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { FrameViewer } from './components/FrameViewer';
-import { Timeline } from './components/Timeline';
-import './App.css';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { FrameViewer } from "./components/FrameViewer";
+import { Timeline } from "./components/Timeline";
+import "./App.css";
 
 // Mock frame data for development
 // TODO: Replace with actual API call to backend
@@ -10,7 +10,7 @@ const generateMockFrames = (count: number) => {
     id: index + 1,
     index,
     thumbnailUrl: undefined, // Will be loaded from backend
-    path: undefined
+    path: undefined,
   }));
 };
 
@@ -22,15 +22,18 @@ function App() {
   const playIntervalRef = useRef<number | null>(null);
 
   // Handle frame change
-  const handleFrameChange = useCallback((index: number) => {
-    if (index >= 0 && index < frames.length) {
-      setCurrentFrameIndex(index);
-    }
-  }, [frames.length]);
+  const handleFrameChange = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < frames.length) {
+        setCurrentFrameIndex(index);
+      }
+    },
+    [frames.length]
+  );
 
   // Play/Pause toggle
   const handlePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
+    setIsPlaying((prev) => !prev);
   }, []);
 
   // Handle frame selection from timeline
@@ -44,9 +47,9 @@ function App() {
   useEffect(() => {
     if (isPlaying) {
       const interval = 1000 / fps; // milliseconds per frame
-      
+
       playIntervalRef.current = window.setInterval(() => {
-        setCurrentFrameIndex(prevIndex => {
+        setCurrentFrameIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
           // Loop back to start or stop at end
           if (nextIndex >= frames.length) {
@@ -69,32 +72,32 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        case 'ArrowLeft':
+        case "ArrowLeft":
           e.preventDefault();
           handleFrameChange(currentFrameIndex - 1);
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           e.preventDefault();
           handleFrameChange(currentFrameIndex + 1);
           break;
-        case ' ':
-        case 'k':
+        case " ":
+        case "k":
           e.preventDefault();
           handlePlayPause();
           break;
-        case 'Home':
+        case "Home":
           e.preventDefault();
           handleFrameChange(0);
           break;
-        case 'End':
+        case "End":
           e.preventDefault();
           handleFrameChange(frames.length - 1);
           break;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentFrameIndex, handleFrameChange, handlePlayPause, frames.length]);
 
   // Get current frame URL
