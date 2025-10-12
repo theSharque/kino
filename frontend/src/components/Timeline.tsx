@@ -6,6 +6,7 @@ interface TimelineProps {
   frames: Frame[];
   currentFrameIndex: number;
   onFrameSelect: (index: number) => void;
+  onAddFrame: () => void;
 }
 
 // Helper to get frame thumbnail URL
@@ -23,6 +24,7 @@ export const Timeline = ({
   frames,
   currentFrameIndex,
   onFrameSelect,
+  onAddFrame,
 }: TimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedFrameRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export const Timeline = ({
         <div
           className="timeline-frame timeline-frame-add"
           title="Add new frame"
+          onClick={onAddFrame}
         >
           <div className="timeline-frame-add-icon">+</div>
         </div>

@@ -80,6 +80,7 @@ class ExamplePlugin(BasePlugin):
             'version': '1.0.0',
             'description': 'Example plugin for testing',
             'author': 'Kino Team',
+            'visible': False,  # Hide from UI (for development/testing only)
             'parameters': {
                 'prompt': {
                     'type': 'string',
