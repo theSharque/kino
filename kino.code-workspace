@@ -134,20 +134,26 @@
         "name": "Backend",
         "type": "node-terminal",
         "request": "launch",
-        "command": "./run.sh",
-        "cwd": "${workspaceFolder:Backend (Python)}",
+        "command": "cd ${workspaceFolder:Backend (Python)} && ./run.sh",
         "presentation": {
-          "hidden": true
+          "hidden": true,
+          "reveal": "always",
+          "panel": "dedicated",
+          "showReuseMessage": false,
+          "clear": false
         }
       },
       {
         "name": "Frontend",
         "type": "node-terminal",
         "request": "launch",
-        "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
-        "cwd": "${workspaceFolder:Frontend (React)}",
+        "command": "cd ${workspaceFolder:Frontend (React)} && bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
         "presentation": {
-          "hidden": true
+          "hidden": true,
+          "reveal": "always",
+          "panel": "dedicated",
+          "showReuseMessage": false,
+          "clear": false
         }
       }
     ],
@@ -155,7 +161,13 @@
       {
         "name": "Full Stack",
         "configurations": ["Backend", "Frontend"],
-        "stopAll": true
+        "stopAll": true,
+        "preLaunchTask": "",
+        "presentation": {
+          "hidden": false,
+          "group": "",
+          "order": 1
+        }
       }
     ]
   },
