@@ -43,11 +43,12 @@ class SDXLPlugin(BasePlugin):
         - negative_prompt: str (optional) - Negative prompt
         - width: int (optional, default: 1024) - Image width
         - height: int (optional, default: 1024) - Image height
-        - steps: int (optional, default: 30) - Number of inference steps
-        - cfg_scale: float (optional, default: 7.5) - CFG scale
+        - steps: int (optional, default: 32) - Number of inference steps
+        - cfg_scale: float (optional, default: 3.5) - CFG scale
         - model_name: str (required) - Model checkpoint filename in StableDiffusion folder
         - sampler: str (optional, default: "dpmpp_2m_sde") - Sampler name
-        - project_id: int (optional) - Project ID to save frame to
+        - loras: list (optional) - List of LoRA configurations with lora_name, strength_model, strength_clip
+        - project_id: int (optional) - Project ID (automatically added by frontend)
         """
         try:
             self.is_running = True
@@ -371,11 +372,6 @@ class SDXLPlugin(BasePlugin):
                             'description': 'LoRA strength for CLIP'
                         }
                     }
-                },
-                'project_id': {
-                    'type': 'integer',
-                    'required': False,
-                    'description': 'Project ID to associate generated frame with (optional)'
                 }
             },
             'capabilities': {
