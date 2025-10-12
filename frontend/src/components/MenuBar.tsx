@@ -77,144 +77,143 @@ export const MenuBar = ({
 
   return (
     <div className="menu-bar" ref={menuRef}>
-      <div className="menu-items">
-        {/* File Menu */}
-        <div className="menu-item">
-          <button
-            className={`menu-button ${activeMenu === "file" ? "active" : ""}`}
-            onClick={() => toggleMenu("file")}
-          >
-            File
-          </button>
-          {activeMenu === "file" && (
-            <div className="menu-dropdown">
-              {menus.file.map((item, index) => (
-                <button
-                  key={index}
-                  className="menu-dropdown-item"
-                  onClick={() => handleMenuItemClick(item.action)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Left section - Menu items */}
+      <div className="menu-section">
+        <div className="menu-items">
+          {/* File Menu */}
+          <div className="menu-item">
+            <button
+              className={`menu-button ${activeMenu === "file" ? "active" : ""}`}
+              onClick={() => toggleMenu("file")}
+            >
+              File
+            </button>
+            {activeMenu === "file" && (
+              <div className="menu-dropdown">
+                {menus.file.map((item, index) => (
+                  <button
+                    key={index}
+                    className="menu-dropdown-item"
+                    onClick={() => handleMenuItemClick(item.action)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Edit Menu */}
-        <div className="menu-item">
-          <button
-            className={`menu-button ${activeMenu === "edit" ? "active" : ""}`}
-            onClick={() => toggleMenu("edit")}
-          >
-            Edit
-          </button>
-          {activeMenu === "edit" && (
-            <div className="menu-dropdown">
-              {menus.edit.map((item, index) => (
-                <button
-                  key={index}
-                  className="menu-dropdown-item"
-                  onClick={() => handleMenuItemClick(item.action)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          {/* Edit Menu */}
+          <div className="menu-item">
+            <button
+              className={`menu-button ${activeMenu === "edit" ? "active" : ""}`}
+              onClick={() => toggleMenu("edit")}
+            >
+              Edit
+            </button>
+            {activeMenu === "edit" && (
+              <div className="menu-dropdown">
+                {menus.edit.map((item, index) => (
+                  <button
+                    key={index}
+                    className="menu-dropdown-item"
+                    onClick={() => handleMenuItemClick(item.action)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* System Menu */}
-        <div className="menu-item">
-          <button
-            className={`menu-button ${activeMenu === "system" ? "active" : ""}`}
-            onClick={() => toggleMenu("system")}
-          >
-            System
-          </button>
-          {activeMenu === "system" && (
-            <div className="menu-dropdown">
-              {menus.system.map((item, index) => (
-                <button
-                  key={index}
-                  className="menu-dropdown-item"
-                  onClick={() => handleMenuItemClick(item.action)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          {/* System Menu */}
+          <div className="menu-item">
+            <button
+              className={`menu-button ${activeMenu === "system" ? "active" : ""}`}
+              onClick={() => toggleMenu("system")}
+            >
+              System
+            </button>
+            {activeMenu === "system" && (
+              <div className="menu-dropdown">
+                {menus.system.map((item, index) => (
+                  <button
+                    key={index}
+                    className="menu-dropdown-item"
+                    onClick={() => handleMenuItemClick(item.action)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Help Menu */}
-        <div className="menu-item">
-          <button
-            className={`menu-button ${activeMenu === "help" ? "active" : ""}`}
-            onClick={() => toggleMenu("help")}
-          >
-            Help
-          </button>
-          {activeMenu === "help" && (
-            <div className="menu-dropdown">
-              {menus.help.map((item, index) => (
-                <button
-                  key={index}
-                  className="menu-dropdown-item"
-                  onClick={() => handleMenuItemClick(item.action)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Help Menu */}
+          <div className="menu-item">
+            <button
+              className={`menu-button ${activeMenu === "help" ? "active" : ""}`}
+              onClick={() => toggleMenu("help")}
+            >
+              Help
+            </button>
+            {activeMenu === "help" && (
+              <div className="menu-dropdown">
+                {menus.help.map((item, index) => (
+                  <button
+                    key={index}
+                    className="menu-dropdown-item"
+                    onClick={() => handleMenuItemClick(item.action)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Status bar with project name and metrics */}
-      <div className="status-bar">
-        {/* Left column - empty */}
-        <div></div>
-
-        {/* Center column - project name */}
+      {/* Center section - Project name */}
+      <div className="center-section">
         {currentProjectName && (
           <span className="project-name">{currentProjectName}</span>
         )}
+      </div>
 
-        {/* Right column - metrics and app title */}
-        <div className="status-right">
-          {systemMetrics && (
-            <span className="metrics">
-              {systemMetrics.queue_size > 0 && (
-                <span className="metric-item">
-                  Queue: {systemMetrics.queue_size}
-                </span>
-              )}
-              {systemMetrics.current_task && (
-                <span className="metric-item">
-                  Current: {Math.round(systemMetrics.current_task.progress)}%
-                </span>
-              )}
+      {/* Right section - System metrics and app title */}
+      <div className="right-section">
+        {systemMetrics && (
+          <span className="metrics">
+            {systemMetrics.queue_size > 0 && (
               <span className="metric-item">
-                CPU: {systemMetrics.cpu_percent}%
+                Queue: {systemMetrics.queue_size}
               </span>
-              {systemMetrics.gpu_available && (
-                <span className="metric-item">
-                  GPU: {systemMetrics.gpu_percent}%
-                </span>
-              )}
+            )}
+            {systemMetrics.current_task && (
               <span className="metric-item">
-                MEM: {systemMetrics.memory_percent}%
+                Current: {Math.round(systemMetrics.current_task.progress)}%
               </span>
+            )}
+            <span className="metric-item">
+              CPU: {systemMetrics.cpu_percent}%
             </span>
-          )}
+            {systemMetrics.gpu_available && (
+              <span className="metric-item">
+                GPU: {systemMetrics.gpu_percent}%
+              </span>
+            )}
+            <span className="metric-item">
+              MEM: {systemMetrics.memory_percent}%
+            </span>
+          </span>
+        )}
 
-          <span className="app-title">KINO</span>
+        <span className="app-title">KINO</span>
 
-          {!isConnected && (
-            <span className="connection-status offline">● Offline</span>
-          )}
-        </div>
+        {!isConnected && (
+          <span className="connection-status offline">● Offline</span>
+        )}
       </div>
     </div>
   );
