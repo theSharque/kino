@@ -54,20 +54,6 @@
   accent-color: #4a90e2;
 }
 
-.project-name {
-  position: absolute;
-  top: 1rem;
-  left: 1.25rem;
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #fff;
-  max-width: calc(100% - 4rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .project-details {
   display: flex;
   gap: 1rem;
