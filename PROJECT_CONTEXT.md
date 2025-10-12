@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added virtual 'add frame' button in timeline)
+**Last Updated:** 2025-10-12 (Improved projects management modal with delete functionality)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -160,8 +160,8 @@ frontend/
 │   │   ├── Timeline.css        # Timeline styles
 │   │   └── modals/             # Modal dialogs
 │   │       ├── NewProjectModal.tsx    # Create new project form
-│   │       ├── OpenProjectModal.tsx   # Select project from list
-│   │       ├── OpenProjectModal.css   # Project cards styling
+│   │       ├── ProjectsModal.tsx      # Manage projects (open, select, delete)
+│   │       ├── ProjectsModal.css      # Project cards styling
 │   │       ├── FindFrameModal.tsx     # Jump to frame by number
 │   │       ├── DeleteFrameModal.tsx   # Confirm frame deletion
 │   │       ├── AboutModal.tsx         # About dialog (Kino v1.0)
@@ -644,7 +644,7 @@ npm run dev
 - [x] Frontend: MenuBar component (File, Edit, Help menus)
 - [x] Frontend: Base Modal component (reusable with animations)
 - [x] Frontend: NewProjectModal (create project form)
-- [x] Frontend: OpenProjectModal (project selection grid)
+- [x] Frontend: ProjectsModal (manage projects: open, select, delete with cascade)
 - [x] Frontend: FindFrameModal (jump to frame by number)
 - [x] Frontend: DeleteFrameModal (confirmation dialog)
 - [x] Frontend: AboutModal (app info, version 1.0.0)
@@ -660,8 +660,12 @@ npm run dev
 - [x] Frontend: Fixed TypeScript type imports (import type)
 - [x] Frontend: Virtual 'add frame' button ('+' card always in timeline)
 - [x] Frontend: Smart timeline UX (no empty state, always show add button)
+- [x] Frontend: Projects management (delete multiple projects with confirmation)
+- [x] Frontend: Cascade deletion (projects + frames deleted together)
+- [x] Frontend: Click project card to open (no separate button needed)
 - [x] Backend: Custom CORS middleware (replaced aiohttp-cors)
 - [x] Backend: CORS support for PydanticView routes
+- [x] Backend: CASCADE DELETE for frames when project deleted
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
@@ -675,11 +679,9 @@ npm run dev
 - [x] Successful test generation (512x512, 16 steps, ~53 seconds)
 
 ### 🔄 In Progress
-- [ ] Frontend: Connect to backend API (fetch frames, projects)
 - [ ] Frontend: Implement virtual scrolling with react-window
-- [ ] Frontend: Project management UI (modals)
 - [ ] Frontend: Generator UI (task management, modals)
-- [ ] Frontend: API integration and state management
+- [ ] Frontend: Virtual frame '+' functionality (open generator modal)
 - [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
 
 ### 📋 Planned
