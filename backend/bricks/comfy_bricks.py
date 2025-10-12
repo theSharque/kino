@@ -6,6 +6,8 @@ from comfy.sample import fix_empty_latent_channels
 from comfy.sample import prepare_noise
 from comfy.sample import sample
 from comfy.sd import load_checkpoint_guess_config
+from comfy.sd import load_lora_for_models
+from comfy.utils import load_torch_file
 
 
 def load_checkpoint_plugin(ckpt_path):
@@ -59,3 +61,32 @@ def vae_decode(vae, samples):
     if len(images.shape) == 5: #Combine batches
         images = images.reshape(-1, images.shape[-3], images.shape[-2], images.shape[-1])
     return images
+
+
+def load_lora(lora_path, model, clip, strength_model=1.0, strength_clip=1.0):
+    """
+    Load and apply LoRA to model and CLIP
+
+    Args:
+        lora_path: Path to LoRA .safetensors file
+        model: Model from checkpoint loader
+        clip: CLIP from checkpoint loader
+        strength_model: LoRA strength for model (0.0-1.0, default 1.0)
+        strength_clip: LoRA strength for CLIP (0.0-1.0, default 1.0)
+
+    Returns:
+        Tuple of (modified_model, modified_clip)
+    """
+    # Load LoRA from file
+    lora_data = load_torch_file(lora_path, safe_load=False)
+
+    # Apply LoRA to model and clip
+    modified_model, modified_clip = load_lora_for_models(
+        model,
+        clip,
+        lora_data,
+        strength_model,
+        strength_clip
+    )
+
+    return (modified_model, modified_clip)
