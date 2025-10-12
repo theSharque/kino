@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added project name display in header and window title)
+**Last Updated:** 2025-10-12 (Added virtual 'add frame' button in timeline)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -658,6 +658,8 @@ npm run dev
 - [x] Frontend: Project name display in MenuBar header
 - [x] Frontend: Dynamic window title (Kino - ProjectName)
 - [x] Frontend: Fixed TypeScript type imports (import type)
+- [x] Frontend: Virtual 'add frame' button ('+' card always in timeline)
+- [x] Frontend: Smart timeline UX (no empty state, always show add button)
 - [x] Backend: Custom CORS middleware (replaced aiohttp-cors)
 - [x] Backend: CORS support for PydanticView routes
 - [x] Git ignore files for both projects
