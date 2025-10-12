@@ -57,10 +57,7 @@ export const ProjectsModal = ({
     onClose();
   };
 
-  const handleCheckboxClick = (
-    e: React.MouseEvent,
-    projectId: number
-  ) => {
+  const handleCheckboxClick = (e: React.MouseEvent, projectId: number) => {
     e.stopPropagation(); // Prevent card click
     setSelectedProjectIds((prev) => {
       const newSet = new Set(prev);
@@ -123,7 +120,9 @@ export const ProjectsModal = ({
             {projects.map((project) => (
               <div
                 key={project.id}
-                className={`project-card ${selectedProjectIds.has(project.id) ? "selected" : ""}`}
+                className={`project-card ${
+                  selectedProjectIds.has(project.id) ? "selected" : ""
+                }`}
                 onClick={() => handleProjectClick(project)}
               >
                 <div
@@ -207,4 +206,3 @@ export const ProjectsModal = ({
     </Modal>
   );
 };
-
