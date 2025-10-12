@@ -5,6 +5,7 @@ CORS is handled by middleware in main.py
 from aiohttp import web
 
 from handlers import health, api, projects, frames, generator, api_documented
+from config import Config
 
 
 def setup_routes(app: web.Application):
@@ -48,3 +49,7 @@ def setup_routes(app: web.Application):
     # These use PydanticView for automatic Swagger documentation
     app.router.add_view('/api/v2/projects', api_documented.ProjectsView)
     app.router.add_view('/api/v2/projects/{project_id}', api_documented.ProjectView)
+
+    # Static files routes
+    # Serve generated frames from data/frames directory
+    app.router.add_static('/data/frames', Config.FRAMES_DIR, show_index=False)
