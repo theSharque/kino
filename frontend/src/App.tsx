@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { MenuBar } from "./components/MenuBar";
 import { FrameViewer } from "./components/FrameViewer";
 import { Timeline } from "./components/Timeline";
+import { NewProjectModal } from "./components/modals/NewProjectModal";
+import { OpenProjectModal } from "./components/modals/OpenProjectModal";
+import { FindFrameModal } from "./components/modals/FindFrameModal";
+import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
+import { AboutModal } from "./components/modals/AboutModal";
 import "./App.css";
 
 // Mock frame data for development
@@ -20,6 +26,13 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [fps] = useState(24); // Mock FPS, will come from project settings
   const playIntervalRef = useRef<number | null>(null);
+
+  // Modal states
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isOpenProjectModalOpen, setIsOpenProjectModalOpen] = useState(false);
+  const [isFindFrameModalOpen, setIsFindFrameModalOpen] = useState(false);
+  const [isDeleteFrameModalOpen, setIsDeleteFrameModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
   // Handle frame change
   const handleFrameChange = useCallback(
@@ -100,12 +113,46 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentFrameIndex, handleFrameChange, handlePlayPause, frames.length]);
 
+  // Modal handlers
+  const handleNewProject = useCallback((data: {
+    name: string;
+    width: number;
+    height: number;
+    fps: number;
+  }) => {
+    // TODO: Call backend API to create project
+    console.log("Create project:", data);
+  }, []);
+
+  const handleOpenProject = useCallback((projectId: number) => {
+    // TODO: Call backend API to load project and frames
+    console.log("Open project:", projectId);
+  }, []);
+
+  const handleFindFrame = useCallback((frameIndex: number) => {
+    handleFrameChange(frameIndex);
+  }, [handleFrameChange]);
+
+  const handleDeleteFrame = useCallback(() => {
+    // TODO: Call backend API to delete current frame
+    console.log("Delete frame:", currentFrameIndex + 1);
+  }, [currentFrameIndex]);
+
   // Get current frame URL
   // TODO: Implement actual frame loading from backend
   const currentFrameUrl = frames[currentFrameIndex]?.thumbnailUrl;
 
   return (
     <div className="app-container">
+      {/* Menu Bar */}
+      <MenuBar
+        onNewProject={() => setIsNewProjectModalOpen(true)}
+        onOpenProject={() => setIsOpenProjectModalOpen(true)}
+        onFindFrame={() => setIsFindFrameModalOpen(true)}
+        onDeleteFrame={() => setIsDeleteFrameModalOpen(true)}
+        onAbout={() => setIsAboutModalOpen(true)}
+      />
+
       {/* Upper part: Frame Viewer (70%) */}
       <div className="viewer-section">
         <FrameViewer
@@ -127,6 +174,38 @@ function App() {
           onFrameSelect={handleFrameSelect}
         />
       </div>
+
+      {/* Modals */}
+      <NewProjectModal
+        isOpen={isNewProjectModalOpen}
+        onClose={() => setIsNewProjectModalOpen(false)}
+        onSubmit={handleNewProject}
+      />
+
+      <OpenProjectModal
+        isOpen={isOpenProjectModalOpen}
+        onClose={() => setIsOpenProjectModalOpen(false)}
+        onSelect={handleOpenProject}
+      />
+
+      <FindFrameModal
+        isOpen={isFindFrameModalOpen}
+        onClose={() => setIsFindFrameModalOpen(false)}
+        onFind={handleFindFrame}
+        totalFrames={frames.length}
+      />
+
+      <DeleteFrameModal
+        isOpen={isDeleteFrameModalOpen}
+        onClose={() => setIsDeleteFrameModalOpen(false)}
+        onConfirm={handleDeleteFrame}
+        frameNumber={currentFrameIndex + 1}
+      />
+
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
     </div>
   );
 }

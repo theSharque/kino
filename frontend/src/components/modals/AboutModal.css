@@ -1,0 +1,79 @@
+.about-content {
+  text-align: center;
+}
+
+.about-logo {
+  font-size: 3rem;
+  margin: 1rem 0;
+}
+
+.about-version {
+  font-size: 1.1rem;
+  color: #4a90e2;
+  margin: 0.5rem 0;
+  font-weight: 600;
+}
+
+.about-description {
+  color: #ccc;
+  margin: 1rem 0 2rem;
+  line-height: 1.6;
+}
+
+.about-tech {
+  text-align: left;
+  background-color: #1a1a1a;
+  padding: 1.25rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+}
+
+.about-tech h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.about-tech ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.about-tech li {
+  padding: 0.5rem 0;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.about-tech li::before {
+  content: "▸ ";
+  color: #4a90e2;
+  margin-right: 0.5rem;
+}
+
+.about-footer {
+  color: #777;
+  font-size: 0.85rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.about-footer p {
+  margin: 0;
+}
+
+.warning-message {
+  margin-bottom: 1.5rem;
+}
+
+.warning-message p {
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+
+.warning-text {
+  color: #e24a4a;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+

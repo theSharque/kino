@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added nvm configuration: always use `nvm use --lts` for frontend)
+**Last Updated:** 2025-10-12 (Added MenuBar and 5 modal dialogs to frontend)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -143,15 +143,27 @@ backend/
 frontend/
 ├── src/
 │   ├── main.tsx         # Entry point
-│   ├── App.tsx          # Main application component (layout 70/30)
+│   ├── App.tsx          # Main application component (MenuBar + 70/30 layout + modals)
 │   ├── App.css          # Application layout styles
 │   ├── index.css        # Global styles and resets
 │   ├── components/      # React components
 │   │   ├── README.md           # Components documentation
+│   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, Help)
+│   │   ├── MenuBar.css         # MenuBar styles
+│   │   ├── Modal.tsx           # Base modal component (reusable)
+│   │   ├── Modal.css           # Modal styles with animations
 │   │   ├── FrameViewer.tsx     # Upper section (70% - frame display + controls)
 │   │   ├── FrameViewer.css     # FrameViewer styles
 │   │   ├── Timeline.tsx        # Lower section (30% - filmstrip timeline)
-│   │   └── Timeline.css        # Timeline styles
+│   │   ├── Timeline.css        # Timeline styles
+│   │   └── modals/             # Modal dialogs
+│   │       ├── NewProjectModal.tsx    # Create new project form
+│   │       ├── OpenProjectModal.tsx   # Select project from list
+│   │       ├── OpenProjectModal.css   # Project cards styling
+│   │       ├── FindFrameModal.tsx     # Jump to frame by number
+│   │       ├── DeleteFrameModal.tsx   # Confirm frame deletion
+│   │       ├── AboutModal.tsx         # About dialog (Kino v1.0)
+│   │       └── AboutModal.css         # About dialog styles
 │   └── assets/          # Static assets (images, icons)
 ├── public/              # Public assets
 ├── node_modules/        # NPM dependencies (gitignored)
@@ -615,6 +627,13 @@ npm run dev
 - [x] Frontend: Auto-scroll to selected frame in timeline
 - [x] Frontend: Dark theme UI with modern styling
 - [x] Frontend: Lazy loading for frame images
+- [x] Frontend: MenuBar component (File, Edit, Help menus)
+- [x] Frontend: Base Modal component (reusable with animations)
+- [x] Frontend: NewProjectModal (create project form)
+- [x] Frontend: OpenProjectModal (project selection grid)
+- [x] Frontend: FindFrameModal (jump to frame by number)
+- [x] Frontend: DeleteFrameModal (confirmation dialog)
+- [x] Frontend: AboutModal (app info, version 1.0.0)
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
