@@ -173,41 +173,48 @@ export const MenuBar = ({
 
       {/* Status bar with project name and metrics */}
       <div className="status-bar">
+        {/* Left column - empty */}
+        <div></div>
+
+        {/* Center column - project name */}
         {currentProjectName && (
           <span className="project-name">{currentProjectName}</span>
         )}
 
-        {systemMetrics && (
-          <span className="metrics">
-            {systemMetrics.queue_size > 0 && (
+        {/* Right column - metrics and app title */}
+        <div className="status-right">
+          {systemMetrics && (
+            <span className="metrics">
+              {systemMetrics.queue_size > 0 && (
+                <span className="metric-item">
+                  Queue: {systemMetrics.queue_size}
+                </span>
+              )}
+              {systemMetrics.current_task && (
+                <span className="metric-item">
+                  Current: {Math.round(systemMetrics.current_task.progress)}%
+                </span>
+              )}
               <span className="metric-item">
-                Queue: {systemMetrics.queue_size}
+                CPU: {systemMetrics.cpu_percent}%
               </span>
-            )}
-            {systemMetrics.current_task && (
+              {systemMetrics.gpu_available && (
+                <span className="metric-item">
+                  GPU: {systemMetrics.gpu_percent}%
+                </span>
+              )}
               <span className="metric-item">
-                Current: {Math.round(systemMetrics.current_task.progress)}%
+                MEM: {systemMetrics.memory_percent}%
               </span>
-            )}
-            <span className="metric-item">
-              CPU: {systemMetrics.cpu_percent}%
             </span>
-            {systemMetrics.gpu_available && (
-              <span className="metric-item">
-                GPU: {systemMetrics.gpu_percent}%
-              </span>
-            )}
-            <span className="metric-item">
-              MEM: {systemMetrics.memory_percent}%
-            </span>
-          </span>
-        )}
+          )}
 
-        <span className="app-title">KINO</span>
+          <span className="app-title">KINO</span>
 
-        {!isConnected && (
-          <span className="connection-status offline">● Offline</span>
-        )}
+          {!isConnected && (
+            <span className="connection-status offline">● Offline</span>
+          )}
+        </div>
       </div>
     </div>
   );
