@@ -1,0 +1,106 @@
+.frame-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.frame-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  overflow: hidden;
+  position: relative;
+}
+
+.frame-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.frame-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 1.2rem;
+}
+
+.frame-placeholder p {
+  margin: 0.5rem 0;
+}
+
+.frame-info {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.control-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-top: 1px solid #3a3a3a;
+}
+
+.control-button {
+  background-color: #3a3a3a;
+  color: #ffffff;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 50px;
+}
+
+.control-button:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: #5a5a5a;
+  transform: translateY(-1px);
+}
+
+.control-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.control-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.play-button {
+  background-color: #4a90e2;
+  border-color: #5a9ff2;
+  min-width: 60px;
+}
+
+.play-button:hover:not(:disabled) {
+  background-color: #5a9ff2;
+  border-color: #6aaff2;
+}
+
+.frame-counter {
+  margin-left: 1rem;
+  font-size: 0.95rem;
+  color: #ccc;
+  font-family: monospace;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fps-info {
+  font-size: 0.85rem;
+  color: #888;
+}
+

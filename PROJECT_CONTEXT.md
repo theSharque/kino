@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-11 (Moved to monorepo: 66 files, 36,126 lines of code)
+**Last Updated:** 2025-10-12 (Created frontend components: FrameViewer + Timeline, 70/30 layout)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -29,9 +29,11 @@ This file serves as a persistent context storage for AI assistance. It contains 
 
 ### Frontend
 - **Language:** TypeScript
-- **Framework:** React 18
-- **Build Tool:** Vite
-- **Styling:** CSS (to be determined if additional libraries needed)
+- **Framework:** React 19.1
+- **Build Tool:** Vite 7.1
+- **UI Components:** Custom React components
+- **Virtual Scrolling:** react-window 1.8
+- **Styling:** CSS Modules (dark theme)
 
 ### Communication
 - **Primary:** REST API
@@ -140,15 +142,27 @@ backend/
 ```
 frontend/
 ├── src/
-│   ├── App.tsx         # Main application component
-│   ├── main.tsx        # Entry point
-│   └── [other components to be organized]
-├── public/
+│   ├── main.tsx         # Entry point
+│   ├── App.tsx          # Main application component (layout 70/30)
+│   ├── App.css          # Application layout styles
+│   ├── index.css        # Global styles and resets
+│   ├── components/      # React components
+│   │   ├── README.md           # Components documentation
+│   │   ├── FrameViewer.tsx     # Upper section (70% - frame display + controls)
+│   │   ├── FrameViewer.css     # FrameViewer styles
+│   │   ├── Timeline.tsx        # Lower section (30% - filmstrip timeline)
+│   │   └── Timeline.css        # Timeline styles
+│   └── assets/          # Static assets (images, icons)
+├── public/              # Public assets
 ├── node_modules/        # NPM dependencies (gitignored)
 ├── .gitignore
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+├── package.json         # Dependencies (React 19, react-window, TypeScript)
+├── tsconfig.json        # TypeScript configuration
+├── tsconfig.app.json    # App-specific TS config
+├── tsconfig.node.json   # Node-specific TS config
+├── vite.config.ts       # Vite build configuration
+├── eslint.config.js     # ESLint configuration
+└── README.md            # Frontend documentation
 ```
 
 ---
@@ -573,8 +587,17 @@ LOG_LEVEL=INFO
 - [x] Backend: Config module for paths management
 - [x] Backend: Database indexes for performance
 - [x] Backend: Models storage with .gitkeep structure
-- [x] Frontend: React + TypeScript + Vite setup
+- [x] Frontend: React 19 + TypeScript + Vite setup
+- [x] Frontend: FrameViewer component (70% - upper section)
+- [x] Frontend: Timeline component (30% - filmstrip with horizontal scroll)
+- [x] Frontend: Playback controls (first, prev, play/pause, next, last)
+- [x] Frontend: Keyboard shortcuts (arrows, space, home, end)
+- [x] Frontend: Play functionality with FPS-based timing
+- [x] Frontend: Auto-scroll to selected frame in timeline
+- [x] Frontend: Dark theme UI with modern styling
+- [x] Frontend: Lazy loading for frame images
 - [x] Git ignore files for both projects
+- [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
 - [x] PROJECT_CONTEXT.md for AI assistance
 - [x] .cursorrules for consistent code generation
@@ -586,10 +609,11 @@ LOG_LEVEL=INFO
 - [x] Successful test generation (512x512, 16 steps, ~53 seconds)
 
 ### 🔄 In Progress
-- [ ] Frontend: Connect to backend API
-- [ ] Frontend: Project management UI
-- [ ] Frontend: Generator UI (task management)
-- [ ] Frontend: Basic UI layout and components
+- [ ] Frontend: Connect to backend API (fetch frames, projects)
+- [ ] Frontend: Implement virtual scrolling with react-window
+- [ ] Frontend: Project management UI (modals)
+- [ ] Frontend: Generator UI (task management, modals)
+- [ ] Frontend: API integration and state management
 - [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
 
 ### 📋 Planned
