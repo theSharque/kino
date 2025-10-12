@@ -159,6 +159,15 @@ function App() {
     console.log("Delete frame:", currentFrameIndex + 1);
   }, [currentFrameIndex]);
 
+  // Update document title when project changes
+  useEffect(() => {
+    if (currentProject) {
+      document.title = `Kino - ${currentProject.name}`;
+    } else {
+      document.title = "Kino";
+    }
+  }, [currentProject]);
+
   // Get current frame URL
   const currentFrameUrl = frames[currentFrameIndex]
     ? `http://localhost:8000/data/frames/${frames[currentFrameIndex].path
@@ -170,6 +179,7 @@ function App() {
     <div className="app-container">
       {/* Menu Bar */}
       <MenuBar
+        currentProjectName={currentProject?.name}
         onNewProject={() => setIsNewProjectModalOpen(true)}
         onOpenProject={() => setIsOpenProjectModalOpen(true)}
         onFindFrame={() => setIsFindFrameModalOpen(true)}

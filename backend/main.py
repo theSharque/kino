@@ -19,14 +19,14 @@ async def cors_middleware(request, handler):
         response = web.Response()
     else:
         response = await handler(request)
-    
+
     # Add CORS headers to all responses
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = '*'
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     response.headers['Access-Control-Expose-Headers'] = '*'
-    
+
     return response
 
 
