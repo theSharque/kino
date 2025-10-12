@@ -10,6 +10,7 @@ import os
 from routes import setup_routes
 from database import init_db, close_db, get_db
 from services.generator_service import GeneratorService
+from handlers import websocket
 
 
 @web.middleware
@@ -45,6 +46,9 @@ async def on_startup(app: web.Application):
 
 async def on_cleanup(app: web.Application):
     """Called on application cleanup"""
+    # Close WebSocket connections
+    await websocket.on_shutdown(app)
+    # Close database
     await close_db()
     print("Database connection closed")
 
