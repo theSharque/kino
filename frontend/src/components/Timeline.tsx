@@ -55,7 +55,9 @@ export const Timeline = ({
             <div
               key={frame.id}
               ref={index === currentFrameIndex ? selectedFrameRef : null}
-              className={`timeline-frame ${index === currentFrameIndex ? "selected" : ""}`}
+              className={`timeline-frame ${
+                index === currentFrameIndex ? "selected" : ""
+              }`}
               onClick={() => handleFrameClick(index)}
             >
               {thumbnailUrl ? (
@@ -66,9 +68,7 @@ export const Timeline = ({
                   loading="lazy"
                 />
               ) : (
-                <div className="timeline-frame-placeholder">
-                  {index + 1}
-                </div>
+                <div className="timeline-frame-placeholder">{index + 1}</div>
               )}
               <div className="timeline-frame-number">{index + 1}</div>
             </div>
