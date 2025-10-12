@@ -131,24 +131,30 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "Backend: run.sh",
+        "name": "Backend",
         "type": "node-terminal",
         "request": "launch",
         "command": "./run.sh",
-        "cwd": "${workspaceFolder:Backend (Python)}"
+        "cwd": "${workspaceFolder:Backend (Python)}",
+        "presentation": {
+          "hidden": true
+        }
       },
       {
-        "name": "Frontend: Dev Server",
+        "name": "Frontend",
         "type": "node-terminal",
         "request": "launch",
         "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
-        "cwd": "${workspaceFolder:Frontend (React)}"
+        "cwd": "${workspaceFolder:Frontend (React)}",
+        "presentation": {
+          "hidden": true
+        }
       }
     ],
     "compounds": [
       {
         "name": "Full Stack",
-        "configurations": ["Backend: run.sh", "Frontend: Dev Server"],
+        "configurations": ["Backend", "Frontend"],
         "stopAll": true
       }
     ]
