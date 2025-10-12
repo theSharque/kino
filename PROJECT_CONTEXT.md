@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Created frontend components: FrameViewer + Timeline, 70/30 layout)
+**Last Updated:** 2025-10-12 (Added nvm configuration: always use `nvm use --lts` for frontend)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -558,6 +558,25 @@ LOG_LEVEL=INFO
 ```
 
 ### Frontend
+
+**Node Version Manager (nvm):**
+- ⚠️ **IMPORTANT:** Always run `nvm use --lts` before any frontend commands
+- This activates the LTS version of Node.js
+- Required for npm, development server, and builds
+
+**Development:**
+```bash
+# Activate Node.js LTS
+nvm use --lts
+
+# Install dependencies
+cd frontend
+npm install
+
+# Run dev server
+npm run dev
+```
+
 - Default dev server: `http://localhost:5173` (Vite default)
 - Backend URL should be configurable via environment variables
 
