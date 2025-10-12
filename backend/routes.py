@@ -4,7 +4,7 @@ CORS is handled by middleware in main.py
 """
 from aiohttp import web
 
-from handlers import health, api, projects, frames, generator, api_documented, models, system
+from handlers import health, api, projects, frames, generator, api_documented, models, system, websocket
 from config import Config
 
 
@@ -13,6 +13,9 @@ def setup_routes(app: web.Application):
 
     # Health check endpoint
     app.router.add_get('/health', health.health_check)
+
+    # WebSocket endpoint for real-time updates
+    app.router.add_get('/ws', websocket.websocket_handler)
 
     # API v1 routes - General
     app.router.add_get('/api/v1/hello', api.hello)

@@ -11,9 +11,13 @@ import { SelectGeneratorModal } from "./components/modals/SelectGeneratorModal";
 import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
 import type { Project, Frame, PluginInfo } from "./api/client";
 import { framesAPI, generatorAPI, systemAPI } from "./api/client";
+import { useWebSocket } from "./hooks/useWebSocket";
 import "./App.css";
 
 function App() {
+  // WebSocket for real-time updates
+  const { metrics, isConnected } = useWebSocket();
+
   // Current project state
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
@@ -302,6 +306,8 @@ function App() {
       {/* Menu Bar */}
       <MenuBar
         currentProjectName={currentProject?.name}
+        systemMetrics={metrics}
+        isConnected={isConnected}
         onNewProject={() => setIsNewProjectModalOpen(true)}
         onOpenProject={() => setIsOpenProjectModalOpen(true)}
         onFindFrame={() => setIsFindFrameModalOpen(true)}
