@@ -12,6 +12,8 @@ interface MenuBarProps {
   onOpenProject: () => void;
   onFindFrame: () => void;
   onDeleteFrame: () => void;
+  onEmergencyStop: () => void;
+  onRestartServer: () => void;
   onAbout: () => void;
 }
 
@@ -21,6 +23,8 @@ export const MenuBar = ({
   onOpenProject,
   onFindFrame,
   onDeleteFrame,
+  onEmergencyStop,
+  onRestartServer,
   onAbout,
 }: MenuBarProps) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -36,7 +40,8 @@ export const MenuBar = ({
 
     if (activeMenu) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [activeMenu]);
 
@@ -57,6 +62,10 @@ export const MenuBar = ({
     edit: [
       { label: "Find Frame", action: onFindFrame },
       { label: "Delete Frame", action: onDeleteFrame },
+    ],
+    system: [
+      { label: "Emergency Stop", action: onEmergencyStop },
+      { label: "Restart Server", action: onRestartServer },
     ],
     help: [{ label: "About", action: onAbout }],
   };
@@ -110,6 +119,29 @@ export const MenuBar = ({
           )}
         </div>
 
+        {/* System Menu */}
+        <div className="menu-item">
+          <button
+            className={`menu-button ${activeMenu === "system" ? "active" : ""}`}
+            onClick={() => toggleMenu("system")}
+          >
+            System
+          </button>
+          {activeMenu === "system" && (
+            <div className="menu-dropdown">
+              {menus.system.map((item, index) => (
+                <button
+                  key={index}
+                  className="menu-dropdown-item"
+                  onClick={() => handleMenuItemClick(item.action)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Help Menu */}
         <div className="menu-item">
           <button
@@ -142,4 +174,3 @@ export const MenuBar = ({
     </div>
   );
 };
-

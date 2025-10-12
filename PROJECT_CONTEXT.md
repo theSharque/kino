@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added LoRA brick for ComfyUI integration)
+**Last Updated:** 2025-10-12 (Added LoRA support, System control menu, auto-restart script)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -84,7 +84,9 @@ backend/
 │   ├── api_documented.py # API v2 handlers with OpenAPI documentation
 │   ├── projects.py     # Project CRUD handlers (v1)
 │   ├── frames.py       # Frame CRUD handlers (v1)
-│   └── generator.py    # Generator/task handlers (v1)
+│   ├── generator.py    # Generator/task handlers (v1)
+│   ├── models.py       # Model management handlers (v1)
+│   └── system.py       # System control handlers (emergency stop, restart, shutdown)
 ├── models/              # Pydantic data models
 │   ├── __init__.py
 │   ├── project.py      # Project models
@@ -94,7 +96,8 @@ backend/
 │   ├── __init__.py
 │   ├── project_service.py  # Project service layer
 │   ├── frame_service.py    # Frame service layer
-│   └── generator_service.py # Generator/task management service
+│   ├── generator_service.py # Generator/task management service (with stop_all_tasks)
+│   └── model_service.py    # Model management service (list categories, models)
 ├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
 │   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode, lora)
 │   ├── frames_routine.py # Frame saving utilities
@@ -133,6 +136,7 @@ backend/
 ├── scripts/             # Utility scripts
 │   └── format_code.sh  # Code formatting script
 ├── venv/                # Python virtual environment (gitignored)
+├── run.sh               # Auto-restart script for development (recommended)
 ├── .env                 # Environment variables (gitignored)
 ├── .gitignore
 ├── requirements.txt
@@ -151,7 +155,7 @@ frontend/
 │   │   └── client.ts   # Backend API client (projects, frames, health)
 │   ├── components/      # React components
 │   │   ├── README.md           # Components documentation
-│   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, Help)
+│   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, System, Help)
 │   │   ├── MenuBar.css         # MenuBar styles
 │   │   ├── Modal.tsx           # Base modal component (reusable)
 │   │   ├── Modal.css           # Modal styles with animations
@@ -166,7 +170,13 @@ frontend/
 │   │       ├── FindFrameModal.tsx     # Jump to frame by number
 │   │       ├── DeleteFrameModal.tsx   # Confirm frame deletion
 │   │       ├── AboutModal.tsx         # About dialog (Kino v1.0)
-│   │       └── AboutModal.css         # About dialog styles
+│   │       ├── AboutModal.css         # About dialog styles
+│   │       ├── SelectGeneratorModal.tsx    # Select generator plugin
+│   │       ├── SelectGeneratorModal.css    # Generator selection styles
+│   │       ├── GenerateFrameModal.tsx      # Dynamic form for plugin parameters
+│   │       ├── GenerateFrameModal.css      # Generate form styles (with row layout)
+│   │       ├── LoraListField.tsx           # LoRA list input component
+│   │       └── LoraListField.css           # LoRA field styles (compact inline layout)
 │   └── assets/          # Static assets (images, icons)
 ├── public/              # Public assets
 ├── node_modules/        # NPM dependencies (gitignored)
@@ -484,6 +494,24 @@ interface TaskCreate {
   - Response: `{"task_id": number, "status": string, "progress": number}`
   - Errors: 404 if not found
 
+### API v1 - Models
+- `GET /api/v1/models/categories` - Get all model categories (folder names)
+  - Response: `{"total": number, "categories": string[]}`
+- `GET /api/v1/models/{category}` - Get models in a category
+  - Response: `{"category": string, "total": number, "models": ModelInfo[]}`
+- `GET /api/v1/models/{category}/{filename}` - Get specific model info
+  - Response: `ModelInfo`
+
+### API v1 - System Control
+- `POST /api/v1/system/emergency-stop` - Stop all running generation tasks
+  - Response: `{"success": boolean, "message": string, "stopped_count": number}`
+- `POST /api/v1/system/restart` - Restart server (requires run.sh)
+  - Response: `{"success": boolean, "message": string}`
+  - Note: Server exits with code 0, run.sh restarts it
+- `POST /api/v1/system/shutdown` - Shutdown server completely
+  - Response: `{"success": boolean, "message": string}`
+  - Note: Server exits with code 1, run.sh stops
+
 ### API v2 - Projects (Documented with OpenAPI)
 **Note:** These endpoints use `PydanticView` and are automatically documented in Swagger UI.
 
@@ -575,6 +603,26 @@ DB_PATH=./data/kino.db
 DEBUG=true
 LOG_LEVEL=INFO
 ```
+
+### Backend Running Modes
+
+**Auto-Restart Mode (Recommended for Development):**
+```bash
+cd backend
+./run.sh
+```
+- Automatically restarts on crashes or via UI "Restart Server" button
+- Stops on Ctrl+C or UI "Shutdown" button
+- Best for active development
+
+**Direct Mode (For debugging):**
+```bash
+cd backend
+source venv/bin/activate
+python main.py
+```
+- Single run, no auto-restart
+- Good for debugging specific issues
 
 ### Frontend
 
@@ -688,6 +736,18 @@ npm run dev
 - [x] SDXL plugin fully implemented and tested (with ComfyUI backend)
 - [x] Plugin system with async support and progress tracking
 - [x] Successful test generation (512x512, 16 steps, ~53 seconds)
+- [x] LoRA support in SDXL plugin (multiple LoRAs with strength controls)
+- [x] Models API for listing AI models by category
+- [x] System control API (emergency stop, restart, shutdown)
+- [x] Backend auto-restart script (run.sh)
+- [x] Frontend: System menu with server control
+- [x] Frontend: LoRA list field component (inline layout)
+- [x] Frontend: Dynamic form generation based on plugin parameter types
+- [x] Frontend: Model selection dropdowns (auto-populated from backend)
+- [x] Frontend: Sampler dropdown (selection type)
+- [x] Frontend: Width/Height in single row layout
+- [x] SDXL defaults updated (CFG: 3.5, Steps: 32)
+- [x] Parameter types: string, integer, float, model_selection, selection, lora_list
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window

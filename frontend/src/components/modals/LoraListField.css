@@ -1,0 +1,116 @@
+.lora-list-field {
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border: 2px solid #3a3a3a;
+  border-radius: 6px;
+}
+
+.lora-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.lora-list-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.btn-add-lora {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-lora:hover {
+  background-color: #3a7bc8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.lora-list-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.lora-list-empty p {
+  margin: 0.5rem 0;
+}
+
+.lora-list-hint {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.lora-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lora-item {
+  background-color: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.lora-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.lora-item-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a90e2;
+}
+
+.btn-remove-lora {
+  background-color: transparent;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-lora:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.lora-item-fields-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.lora-field-name {
+  flex: 1;
+}
+
+.lora-field-strength {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.lora-field-strength input {
+  text-align: center;
+}
+
