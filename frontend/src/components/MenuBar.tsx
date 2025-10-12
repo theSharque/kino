@@ -129,7 +129,9 @@ export const MenuBar = ({
           {/* System Menu */}
           <div className="menu-item">
             <button
-              className={`menu-button ${activeMenu === "system" ? "active" : ""}`}
+              className={`menu-button ${
+                activeMenu === "system" ? "active" : ""
+              }`}
               onClick={() => toggleMenu("system")}
             >
               System
