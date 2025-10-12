@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Integrated Projects API: create and load projects from backend)
+**Last Updated:** 2025-10-12 (Fixed workspace.json: nvm activation for all frontend npm commands)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -583,6 +583,8 @@ LOG_LEVEL=INFO
 - Required for npm, development server, and builds
 
 **Development:**
+
+*Via command line:*
 ```bash
 # Activate Node.js LTS
 nvm use --lts
@@ -594,6 +596,12 @@ npm install
 # Run dev server
 npm run dev
 ```
+
+*Via VS Code workspace:*
+- ✅ Launch configurations include nvm activation automatically
+- Run → Start Debugging → "Frontend: Dev Server"
+- Or use task: "Frontend: Start Dev Server"
+- Or compound: "Full Stack" (starts both backend and frontend)
 
 - Default dev server: `http://localhost:5173` (Vite default)
 - Backend URL should be configurable via environment variables
