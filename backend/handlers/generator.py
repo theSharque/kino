@@ -241,7 +241,7 @@ async def get_task_progress(request: web.Request) -> web.Response:
 
 async def get_plugins(request: web.Request) -> web.Response:
     """
-    Get all available plugins
+    Get all available plugins (only visible ones)
 
     GET /api/v1/generator/plugins
     """
@@ -249,11 +249,18 @@ async def get_plugins(request: web.Request) -> web.Response:
         db = get_db()
         service = GeneratorService(db)
 
-        plugins = service.get_available_plugins()
+        all_plugins = service.get_available_plugins()
+
+        # Filter only visible plugins (default to True if not specified)
+        visible_plugins = {
+            name: info
+            for name, info in all_plugins.items()
+            if info.get('visible', True)  # Show by default if not specified
+        }
 
         return web.json_response({
-            'total': len(plugins),
-            'plugins': plugins
+            'total': len(visible_plugins),
+            'plugins': visible_plugins
         }, status=200)
 
     except Exception as e:

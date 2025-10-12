@@ -22,10 +22,11 @@ FRAMES_DIR = DATA_DIR / "frames"
 
 class Config:
     """Configuration class"""
-    MODELS_DIR = str(MODELS_DIR)
-    DATA_DIR = str(DATA_DIR)
-    PROJECTS_DIR = str(PROJECTS_DIR)
-    FRAMES_DIR = str(FRAMES_DIR)
+    MODELS_DIR = MODELS_DIR  # Keep as Path for directory operations
+    MODELS_STORAGE_DIR = MODELS_DIR  # Alias for backward compatibility
+    DATA_DIR = DATA_DIR  # Keep as Path
+    PROJECTS_DIR = PROJECTS_DIR  # Keep as Path
+    FRAMES_DIR = FRAMES_DIR  # Keep as Path
 
     # Ensure directories exist
     @staticmethod

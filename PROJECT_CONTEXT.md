@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Improved projects management modal with delete functionality)
+**Last Updated:** 2025-10-12 (Added frame generation UI with model selection dropdown)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -663,9 +663,17 @@ npm run dev
 - [x] Frontend: Projects management (delete multiple projects with confirmation)
 - [x] Frontend: Cascade deletion (projects + frames deleted together)
 - [x] Frontend: Click project card to open (no separate button needed)
+- [x] Frontend: SelectGeneratorModal (choose generator plugin)
+- [x] Frontend: GenerateFrameModal (dynamic form from plugin parameters)
+- [x] Frontend: Model selection dropdown (auto-loads models from backend)
+- [x] Frontend: Fixed keyboard shortcuts (don't block input fields)
 - [x] Backend: Custom CORS middleware (replaced aiohttp-cors)
 - [x] Backend: CORS support for PydanticView routes
 - [x] Backend: CASCADE DELETE for frames when project deleted
+- [x] Backend: ModelService for managing AI models
+- [x] Backend: Models API (categories, models by category)
+- [x] Backend: Plugin visibility control (visible field)
+- [x] Backend: Static files serving for frames
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
@@ -680,8 +688,8 @@ npm run dev
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window
-- [ ] Frontend: Generator UI (task management, modals)
-- [ ] Frontend: Virtual frame '+' functionality (open generator modal)
+- [ ] Frontend: Task progress tracking UI
+- [ ] Frontend: Frame reload after generation completes
 - [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
 
 ### 📋 Planned

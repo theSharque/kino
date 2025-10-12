@@ -244,6 +244,7 @@ class SDXLPlugin(BasePlugin):
             'version': '1.0.0',
             'description': 'Stable Diffusion XL image generator via ComfyUI backend',
             'author': 'Kino Team',
+            'visible': True,  # Show in UI
             'model_type': 'diffusion',
             'parameters': {
                 'prompt': {
@@ -253,7 +254,8 @@ class SDXLPlugin(BasePlugin):
                     'example': 'A beautiful landscape with mountains and lake'
                 },
                 'model_name': {
-                    'type': 'string',
+                    'type': 'model_selection',
+                    'category': 'StableDiffusion',
                     'required': True,
                     'description': 'Model checkpoint filename (must be in models_storage/StableDiffusion/ folder)',
                     'example': 'sd_xl_base_1.0.safetensors'

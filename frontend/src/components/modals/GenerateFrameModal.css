@@ -1,0 +1,119 @@
+.generate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.plugin-info {
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border-radius: 6px;
+  border-left: 3px solid #4a90e2;
+}
+
+.plugin-description {
+  margin: 0;
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: capitalize;
+}
+
+.required {
+  color: #e74c3c;
+  margin-left: 0.25rem;
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.75rem;
+  border: 2px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+  background-color: #252525;
+}
+
+.form-input.error,
+.form-textarea.error {
+  border-color: #e74c3c;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.field-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-description {
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.4;
+}
+
+.field-error {
+  font-size: 0.8rem;
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.field-default {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Custom scrollbar for form fields */
+.form-fields::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form-fields::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.form-fields::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+.form-fields::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+

@@ -7,8 +7,10 @@ import { ProjectsModal } from "./components/modals/ProjectsModal";
 import { FindFrameModal } from "./components/modals/FindFrameModal";
 import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
 import { AboutModal } from "./components/modals/AboutModal";
-import type { Project, Frame } from "./api/client";
-import { framesAPI } from "./api/client";
+import { SelectGeneratorModal } from "./components/modals/SelectGeneratorModal";
+import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
+import type { Project, Frame, PluginInfo } from "./api/client";
+import { framesAPI, generatorAPI } from "./api/client";
 import "./App.css";
 
 function App() {
@@ -30,6 +32,13 @@ function App() {
   const [isFindFrameModalOpen, setIsFindFrameModalOpen] = useState(false);
   const [isDeleteFrameModalOpen, setIsDeleteFrameModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isSelectGeneratorModalOpen, setIsSelectGeneratorModalOpen] =
+    useState(false);
+  const [isGenerateFrameModalOpen, setIsGenerateFrameModalOpen] =
+    useState(false);
+
+  // Generator state
+  const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
 
   // Get FPS from project or use default
   const fps = currentProject?.fps || 24;
@@ -84,6 +93,18 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip keyboard shortcuts if user is typing in an input field
+      const target = e.target as HTMLElement;
+      const isInputField =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+
+      if (isInputField) {
+        return; // Don't handle shortcuts when typing
+      }
+
       switch (e.key) {
         case "ArrowLeft":
           e.preventDefault();
@@ -159,6 +180,63 @@ function App() {
     console.log("Delete frame:", currentFrameIndex + 1);
   }, [currentFrameIndex]);
 
+  // Generator handlers
+  const handleAddFrame = useCallback(() => {
+    if (!currentProject) {
+      alert("Please open or create a project first");
+      return;
+    }
+    setIsSelectGeneratorModalOpen(true);
+  }, [currentProject]);
+
+  const handleGeneratorSelect = useCallback((plugin: PluginInfo) => {
+    setSelectedPlugin(plugin);
+    setIsGenerateFrameModalOpen(true);
+  }, []);
+
+  const handleGenerate = useCallback(
+    async (pluginName: string, parameters: Record<string, any>) => {
+      if (!currentProject) {
+        console.error("No project selected");
+        return;
+      }
+
+      try {
+        console.log("Creating generation task:", {
+          pluginName,
+          parameters,
+        });
+
+        // Create task
+        const task = await generatorAPI.createTask({
+          name: `Generate frame for ${currentProject.name}`,
+          type: pluginName,
+          data: parameters,
+        });
+
+        console.log("Task created:", task);
+
+        // Start generation
+        await generatorAPI.startTask(task.id);
+        console.log("Generation started for task:", task.id);
+
+        // TODO: Implement progress tracking and frame reload
+        // For now, just reload frames after a delay
+        setTimeout(async () => {
+          await loadProjectFrames(currentProject.id);
+        }, 5000);
+      } catch (err) {
+        console.error("Failed to generate frame:", err);
+        alert(
+          `Failed to generate frame: ${
+            err instanceof Error ? err.message : "Unknown error"
+          }`
+        );
+      }
+    },
+    [currentProject, loadProjectFrames]
+  );
+
   // Update document title when project changes
   useEffect(() => {
     if (currentProject) {
@@ -206,6 +284,7 @@ function App() {
           frames={frames}
           currentFrameIndex={currentFrameIndex}
           onFrameSelect={handleFrameSelect}
+          onAddFrame={handleAddFrame}
         />
       </div>
 
@@ -239,6 +318,20 @@ function App() {
       <AboutModal
         isOpen={isAboutModalOpen}
         onClose={() => setIsAboutModalOpen(false)}
+      />
+
+      <SelectGeneratorModal
+        isOpen={isSelectGeneratorModalOpen}
+        onClose={() => setIsSelectGeneratorModalOpen(false)}
+        onSelect={handleGeneratorSelect}
+      />
+
+      <GenerateFrameModal
+        isOpen={isGenerateFrameModalOpen}
+        onClose={() => setIsGenerateFrameModalOpen(false)}
+        plugin={selectedPlugin}
+        projectId={currentProject?.id || null}
+        onGenerate={handleGenerate}
       />
     </div>
   );

@@ -46,6 +46,56 @@ export interface BackendHealth {
   memory_percent: number;
 }
 
+export interface PluginParameter {
+  type: string;
+  required: boolean;
+  default?: any;
+  description: string;
+  example?: string;
+  min?: number;
+  max?: number;
+  category?: string; // For model_selection type
+  options?: string[]; // For enum-like fields
+}
+
+export interface PluginInfo {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  model_type: string;
+  parameters: Record<string, PluginParameter>;
+}
+
+export interface Task {
+  id: number;
+  name: string;
+  type: string;
+  data: Record<string, any>;
+  status: string;
+  progress: number;
+  result?: Record<string, any>;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface TaskCreate {
+  name: string;
+  type: string;
+  data: Record<string, any>;
+}
+
+export interface ModelInfo {
+  filename: string;
+  display_name: string;
+  path: string;
+  size: number;
+  extension: string;
+}
+
 /**
  * Generic fetch wrapper with error handling
  */
@@ -168,6 +218,111 @@ export const framesAPI = {
 };
 
 /**
+ * Generator API (v1)
+ */
+export const generatorAPI = {
+  /**
+   * Get all available plugins
+   */
+  getPlugins: async (): Promise<PluginInfo[]> => {
+    const response = await fetchAPI<{
+      total: number;
+      plugins: Record<string, PluginInfo>;
+    }>("/api/v1/generator/plugins");
+    // Convert object to array
+    return Object.values(response.plugins);
+  },
+
+  /**
+   * Create new task
+   */
+  createTask: (data: TaskCreate) =>
+    fetchAPI<Task>("/api/v1/generator/tasks", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Start task generation
+   */
+  startTask: (taskId: number) =>
+    fetchAPI<{ message: string; task_id: number }>(
+      `/api/v1/generator/tasks/${taskId}/generate`,
+      {
+        method: "POST",
+      }
+    ),
+
+  /**
+   * Stop task generation
+   */
+  stopTask: (taskId: number) =>
+    fetchAPI<{ message: string; task_id: number }>(
+      `/api/v1/generator/tasks/${taskId}/stop`,
+      {
+        method: "POST",
+      }
+    ),
+
+  /**
+   * Get task by ID
+   */
+  getTask: (taskId: number) =>
+    fetchAPI<Task>(`/api/v1/generator/tasks/${taskId}`),
+
+  /**
+   * Get task progress
+   */
+  getTaskProgress: (taskId: number) =>
+    fetchAPI<{ task_id: number; status: string; progress: number }>(
+      `/api/v1/generator/tasks/${taskId}/progress`
+    ),
+
+  /**
+   * Get all tasks
+   */
+  getAllTasks: async (): Promise<Task[]> => {
+    const response = await fetchAPI<{ total: number; tasks: Task[] }>(
+      "/api/v1/generator/tasks"
+    );
+    return response.tasks;
+  },
+};
+
+/**
+ * Models API (v1)
+ */
+export const modelsAPI = {
+  /**
+   * Get all model categories
+   */
+  getCategories: async (): Promise<string[]> => {
+    const response = await fetchAPI<{ total: number; categories: string[] }>(
+      "/api/v1/models/categories"
+    );
+    return response.categories;
+  },
+
+  /**
+   * Get models by category
+   */
+  getByCategory: async (category: string): Promise<ModelInfo[]> => {
+    const response = await fetchAPI<{
+      category: string;
+      total: number;
+      models: ModelInfo[];
+    }>(`/api/v1/models/${category}`);
+    return response.models;
+  },
+
+  /**
+   * Get model info
+   */
+  getModelInfo: (category: string, filename: string) =>
+    fetchAPI<ModelInfo>(`/api/v1/models/${category}/${filename}`),
+};
+
+/**
  * Get frame image URL
  */
 export const getFrameImageUrl = (framePath: string): string => {
@@ -175,4 +330,3 @@ export const getFrameImageUrl = (framePath: string): string => {
   // TODO: Backend should serve frames via API endpoint
   return `${API_BASE_URL}/data/frames/${framePath.split("/").pop()}`;
 };
-
