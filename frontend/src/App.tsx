@@ -13,11 +13,11 @@ import "./App.css";
 function App() {
   // Current project state
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  
+
   // Frames state
   const [frames, setFrames] = useState<Frame[]>([]);
   const [loadingFrames, setLoadingFrames] = useState(false);
-  
+
   // Playback state
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -128,30 +128,30 @@ function App() {
   }, []);
 
   // Modal handlers
-  const handleNewProject = useCallback(
-    (project: Project) => {
-      setCurrentProject(project);
-      setFrames([]); // New project has no frames yet
-      setCurrentFrameIndex(0);
-      console.log("Project created:", project);
-    },
-    []
-  );
+  const handleNewProject = useCallback((project: Project) => {
+    setCurrentProject(project);
+    setFrames([]); // New project has no frames yet
+    setCurrentFrameIndex(0);
+    console.log("Project created:", project);
+  }, []);
 
   const handleOpenProject = useCallback(
     async (project: Project) => {
       setCurrentProject(project);
       console.log("Opening project:", project);
-      
+
       // Load frames for the selected project
       await loadProjectFrames(project.id);
     },
     [loadProjectFrames]
   );
 
-  const handleFindFrame = useCallback((frameIndex: number) => {
-    handleFrameChange(frameIndex);
-  }, [handleFrameChange]);
+  const handleFindFrame = useCallback(
+    (frameIndex: number) => {
+      handleFrameChange(frameIndex);
+    },
+    [handleFrameChange]
+  );
 
   const handleDeleteFrame = useCallback(() => {
     // TODO: Call backend API to delete current frame
@@ -160,7 +160,9 @@ function App() {
 
   // Get current frame URL
   const currentFrameUrl = frames[currentFrameIndex]
-    ? `http://localhost:8000/data/frames/${frames[currentFrameIndex].path.split("/").pop()}`
+    ? `http://localhost:8000/data/frames/${frames[currentFrameIndex].path
+        .split("/")
+        .pop()}`
     : undefined;
 
   return (

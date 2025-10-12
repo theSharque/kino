@@ -143,12 +143,10 @@
       },
       {
         "name": "Frontend: Dev Server",
-        "type": "node",
+        "type": "node-terminal",
         "request": "launch",
-        "runtimeExecutable": "npm",
-        "runtimeArgs": ["run", "dev"],
-        "cwd": "${workspaceFolder:Frontend (React)}",
-        "console": "integratedTerminal"
+        "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
+        "cwd": "${workspaceFolder:Frontend (React)}"
       }
     ],
     "compounds": [
@@ -184,7 +182,7 @@
       {
         "label": "Frontend: Start Dev Server",
         "type": "shell",
-        "command": "npm run dev",
+        "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
         "options": {
           "cwd": "${workspaceFolder:Frontend (React)}"
         },
@@ -194,7 +192,16 @@
       {
         "label": "Frontend: Build",
         "type": "shell",
-        "command": "npm run build",
+        "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run build'",
+        "options": {
+          "cwd": "${workspaceFolder:Frontend (React)}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Frontend: Install Dependencies",
+        "type": "shell",
+        "command": "bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm install'",
         "options": {
           "cwd": "${workspaceFolder:Frontend (React)}"
         },
