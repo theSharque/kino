@@ -48,38 +48,40 @@ export const Timeline = ({
   return (
     <div className="timeline" ref={timelineRef}>
       <div className="timeline-scroll-container">
-        {frames.length > 0 ? (
-          frames.map((frame, index) => {
-            const thumbnailUrl = getFrameThumbnailUrl(frame);
-            return (
-              <div
-                key={frame.id}
-                ref={index === currentFrameIndex ? selectedFrameRef : null}
-                className={`timeline-frame ${index === currentFrameIndex ? "selected" : ""}`}
-                onClick={() => handleFrameClick(index)}
-              >
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={`Frame ${index + 1}`}
-                    className="timeline-frame-image"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="timeline-frame-placeholder">
-                    {index + 1}
-                  </div>
-                )}
-                <div className="timeline-frame-number">{index + 1}</div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="timeline-empty">
-            <p>No frames available</p>
-            <p className="timeline-hint">Create frames to see them here</p>
-          </div>
-        )}
+        {/* Render existing frames */}
+        {frames.map((frame, index) => {
+          const thumbnailUrl = getFrameThumbnailUrl(frame);
+          return (
+            <div
+              key={frame.id}
+              ref={index === currentFrameIndex ? selectedFrameRef : null}
+              className={`timeline-frame ${index === currentFrameIndex ? "selected" : ""}`}
+              onClick={() => handleFrameClick(index)}
+            >
+              {thumbnailUrl ? (
+                <img
+                  src={thumbnailUrl}
+                  alt={`Frame ${index + 1}`}
+                  className="timeline-frame-image"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="timeline-frame-placeholder">
+                  {index + 1}
+                </div>
+              )}
+              <div className="timeline-frame-number">{index + 1}</div>
+            </div>
+          );
+        })}
+
+        {/* Virtual "add frame" card */}
+        <div
+          className="timeline-frame timeline-frame-add"
+          title="Add new frame"
+        >
+          <div className="timeline-frame-add-icon">+</div>
+        </div>
       </div>
     </div>
   );
