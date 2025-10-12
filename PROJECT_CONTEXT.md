@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-11 (Initial git commit: 46 files, 30,963 lines of code)
+**Last Updated:** 2025-10-11 (Moved to monorepo: 66 files, 36,126 lines of code)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -40,6 +40,32 @@ This file serves as a persistent context storage for AI assistance. It contains 
 ---
 
 ## Architecture & Structure
+
+### Repository Structure
+
+**Monorepo:** Single git repository containing both backend and frontend.
+
+```
+/qs/kino/                        # 🔴 Git Root (Monorepo)
+├── .git/                        # Git repository
+├── .gitignore                   # Root gitignore (common rules)
+├── .cursorrules                 # AI development rules
+├── PROJECT_CONTEXT.md           # This file - project context
+├── kino.code-workspace          # VS Code workspace configuration
+├── backend/                     # Python backend
+│   ├── .gitignore              # Backend-specific rules
+│   └── [backend structure]
+└── frontend/                    # React frontend
+    ├── .gitignore              # Frontend-specific rules
+    └── [frontend structure]
+```
+
+**Why monorepo?**
+- Synchronized API changes (backend + frontend in one commit)
+- Shared PROJECT_CONTEXT.md
+- Unified git history
+- Simpler CI/CD
+- Single source of truth for data models
 
 ### Backend Structure
 ```
@@ -648,6 +674,15 @@ LOG_LEVEL=INFO
     - `FRAMES_DIR`: Generated frame images
     - `PROJECTS_DIR`: Project-specific data
     - Auto-creates directories on import
+
+11. **Monorepo Structure**
+    - Single git repository for backend + frontend
+    - Synchronized versioning and API changes
+    - Shared documentation (PROJECT_CONTEXT.md in root)
+    - Separate .gitignore for each subproject
+    - Root .gitignore for common rules (IDE, OS files)
+    - Atomic commits for full-stack features
+    - Simplified deployment and CI/CD
 
 ---
 
