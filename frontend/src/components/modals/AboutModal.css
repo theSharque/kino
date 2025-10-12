@@ -77,3 +77,73 @@
   font-size: 0.9rem;
 }
 
+/* Backend Status Section */
+.about-backend-status {
+  text-align: left;
+  background-color: #1a1a1a;
+  padding: 1.25rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+}
+
+.about-backend-status h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.status-loading {
+  color: #999;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.status-error {
+  color: #e24a4a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.status-online {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.status-indicator {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.status-indicator.status-ok {
+  color: #4ade80;
+}
+
+.status-indicator.status-offline {
+  color: #e24a4a;
+}
+
+.status-label {
+  color: #999;
+  min-width: 80px;
+}
+
+.status-value {
+  color: #fff;
+  font-family: monospace;
+}
+
+.status-url {
+  color: #4a90e2;
+  font-size: 0.85rem;
+}
+

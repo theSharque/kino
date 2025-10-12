@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added MenuBar and 5 modal dialogs to frontend)
+**Last Updated:** 2025-10-12 (Connected AboutModal to backend /health API - first API integration)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -634,6 +634,8 @@ npm run dev
 - [x] Frontend: FindFrameModal (jump to frame by number)
 - [x] Frontend: DeleteFrameModal (confirmation dialog)
 - [x] Frontend: AboutModal (app info, version 1.0.0)
+- [x] Frontend: First API integration (AboutModal → backend /health)
+- [x] Frontend: Backend status monitoring (online/offline, CPU, memory)
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
