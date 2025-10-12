@@ -3,7 +3,7 @@ import { MenuBar } from "./components/MenuBar";
 import { FrameViewer } from "./components/FrameViewer";
 import { Timeline } from "./components/Timeline";
 import { NewProjectModal } from "./components/modals/NewProjectModal";
-import { OpenProjectModal } from "./components/modals/OpenProjectModal";
+import { ProjectsModal } from "./components/modals/ProjectsModal";
 import { FindFrameModal } from "./components/modals/FindFrameModal";
 import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
 import { AboutModal } from "./components/modals/AboutModal";
@@ -216,7 +216,7 @@ function App() {
         onProjectCreated={handleNewProject}
       />
 
-      <OpenProjectModal
+      <ProjectsModal
         isOpen={isOpenProjectModalOpen}
         onClose={() => setIsOpenProjectModalOpen(false)}
         onProjectSelected={handleOpenProject}

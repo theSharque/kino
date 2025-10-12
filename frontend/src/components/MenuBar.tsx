@@ -52,7 +52,7 @@ export const MenuBar = ({
   const menus = {
     file: [
       { label: "New Project", action: onNewProject },
-      { label: "Open Project", action: onOpenProject },
+      { label: "Projects", action: onOpenProject },
     ],
     edit: [
       { label: "Find Frame", action: onFindFrame },
