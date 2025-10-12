@@ -650,7 +650,15 @@ npm run dev
 - ✅ Launch configurations include nvm activation automatically
 - Run → Start Debugging → "Frontend: Dev Server"
 - Or use task: "Frontend: Start Dev Server"
-- Or compound: "Full Stack" (starts both backend and frontend)
+- Or compound: "Full Stack (Auto-Restart)" - recommended for development
+- Or compound: "Full Stack (Direct)" - for debugging
+
+**Workspace Launch Configurations:**
+- **Backend: Auto-Restart (run.sh)** - Uses auto-restart script
+- **Python: Backend Server (Direct)** - Direct Python execution for debugging
+- **Frontend: Dev Server** - Vite dev server with nvm
+- **Full Stack (Auto-Restart)** - Both backend (with auto-restart) + frontend
+- **Full Stack (Direct)** - Both backend (direct) + frontend
 
 - Default dev server: `http://localhost:5173` (Vite default)
 - Backend URL should be configurable via environment variables
@@ -992,6 +1000,105 @@ frames = save_frame(project_name, frame_id, image)
 ```
 
 **Available samplers:** `euler`, `euler_a`, `dpmpp_2m`, `dpmpp_2m_sde`, `dpmpp_2m_karras`, `dpmpp_sde`, `ddim`, `uni_pc`
+
+**Using LoRA with Bricks:**
+
+```python
+import bricks.comfy_bricks as comfy_bricks
+
+# Load checkpoint first
+(model, clip, vae, _) = comfy_bricks.load_checkpoint_plugin(ckpt_path)
+
+# Apply LoRA (can be called multiple times for multiple LoRAs)
+lora_path = os.path.join(Config.MODELS_DIR, "Lora", "my_lora.safetensors")
+model, clip = comfy_bricks.load_lora(
+    lora_path,
+    model,
+    clip,
+    strength_model=1.0,  # 0.0 to 2.0
+    strength_clip=1.0    # 0.0 to 2.0
+)
+
+# Continue with generation using modified model and clip
+```
+
+### Plugin Parameter Types
+
+The dynamic form generator supports the following parameter types:
+
+1. **`string`** - Text input or textarea (auto-detects prompts)
+   ```python
+   'prompt': {
+       'type': 'string',
+       'required': True,
+       'description': 'Text prompt',
+       'example': 'A beautiful landscape'
+   }
+   ```
+
+2. **`integer`** - Number input (step=1)
+   ```python
+   'steps': {
+       'type': 'integer',
+       'default': 32,
+       'min': 1,
+       'max': 150
+   }
+   ```
+
+3. **`float`** - Decimal number input (step=0.01)
+   ```python
+   'cfg_scale': {
+       'type': 'float',
+       'default': 3.5,
+       'min': 1.0,
+       'max': 20.0
+   }
+   ```
+
+4. **`selection`** - Dropdown with predefined options
+   ```python
+   'sampler': {
+       'type': 'selection',
+       'default': 'dpmpp_2m_sde',
+       'options': ['euler', 'euler_a', 'dpmpp_2m', ...]
+   }
+   ```
+
+5. **`model_selection`** - Dropdown auto-populated from models_storage
+   ```python
+   'model_name': {
+       'type': 'model_selection',
+       'category': 'StableDiffusion',  # Folder name in models_storage
+       'required': True
+   }
+   ```
+
+6. **`lora_list`** - Dynamic list of LoRA configurations
+   ```python
+   'loras': {
+       'type': 'lora_list',
+       'default': [],
+       'item_schema': {
+           'lora_name': {
+               'type': 'model_selection',
+               'category': 'Lora'
+           },
+           'strength_model': {
+               'type': 'float',
+               'default': 1.0,
+               'min': 0.0,
+               'max': 2.0
+           },
+           'strength_clip': {
+               'type': 'float',
+               'default': 1.0,
+               'min': 0.0,
+               'max': 2.0
+           }
+       }
+   }
+   ```
 
 ### Creating a New Generator Plugin
 
