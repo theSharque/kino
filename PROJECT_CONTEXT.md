@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added frame generation UI with model selection dropdown)
+**Last Updated:** 2025-10-12 (Added LoRA brick for ComfyUI integration)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -96,8 +96,9 @@ backend/
 │   ├── frame_service.py    # Frame service layer
 │   └── generator_service.py # Generator/task management service
 ├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
-│   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode)
-│   └── frames_routine.py # Frame saving utilities
+│   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode, lora)
+│   ├── frames_routine.py # Frame saving utilities
+│   └── README.md       # Bricks documentation and usage examples
 ├── comfy/               # ComfyUI backend integration (full ComfyUI codebase)
 │   ├── sd.py           # Stable Diffusion implementations
 │   ├── model_management.py # Model loading and memory management
@@ -628,7 +629,9 @@ npm run dev
 - [x] Backend: Frame storage directory structure
 - [x] Backend: AI models storage structure (DiffusionModels, StableDiffusion, Lora, TextEncoders, ClipVision, VAE)
 - [x] Backend: ComfyUI full integration (comfy/ directory with complete backend)
-- [x] Backend: Bricks connector layer (comfy_bricks.py, frames_routine.py)
+- [x] Backend: Bricks connector layer (6 bricks: checkpoint, encode, latent, ksampler, decode, lora)
+- [x] Backend: LoRA brick (load and apply LoRA to model and CLIP)
+- [x] Backend: Bricks documentation (README.md with examples)
 - [x] Backend: Config module for paths management
 - [x] Backend: Database indexes for performance
 - [x] Backend: Models storage with .gitkeep structure
