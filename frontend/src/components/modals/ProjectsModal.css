@@ -23,8 +23,7 @@
   background-color: #1a1a1a;
   border: 2px solid #3a3a3a;
   border-radius: 6px;
-  padding: 1.25rem;
-  padding-top: 2.5rem;
+  padding: 3rem 1.25rem 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -56,10 +55,17 @@
 }
 
 .project-name {
-  margin: 0 0 0.75rem 0;
+  position: absolute;
+  top: 1rem;
+  left: 1.25rem;
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: #fff;
+  max-width: calc(100% - 4rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-details {
@@ -168,5 +174,47 @@
 .btn-danger:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.projects-card {
+  position: relative;
+  background-color: #1a1a1a;
+  border: 2px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 2.5rem 1.25rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 120px;
+}
+
+.projects-card-name {
+  position: absolute;
+  top: 0.75rem;
+  left: 1rem;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  max-width: calc(100% - 3.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.projects-checkbox {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.projects-details {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #999;
 }
 

@@ -127,7 +127,7 @@ export const ProjectsModal = ({
                 onClick={() => handleProjectClick(project)}
               >
                 <div
-                  className="project-checkbox"
+                  className="projects-checkbox"
                   onClick={(e) => handleCheckboxClick(e, project.id)}
                 >
                   <input
@@ -136,8 +136,8 @@ export const ProjectsModal = ({
                     onChange={() => {}} // Controlled by handleCheckboxClick
                   />
                 </div>
-                <h3 className="project-name">{project.name}</h3>
-                <div className="project-details">
+                <h3 className="projects-card-name">{project.name}</h3>
+                <div className="projects-details">
                   <span>
                     {project.width} × {project.height}
                   </span>
