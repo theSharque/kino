@@ -7,6 +7,7 @@ interface MenuItem {
 }
 
 interface MenuBarProps {
+  currentProjectName?: string;
   onNewProject: () => void;
   onOpenProject: () => void;
   onFindFrame: () => void;
@@ -15,6 +16,7 @@ interface MenuBarProps {
 }
 
 export const MenuBar = ({
+  currentProjectName,
   onNewProject,
   onOpenProject,
   onFindFrame,
@@ -131,6 +133,10 @@ export const MenuBar = ({
           )}
         </div>
       </div>
+
+      {currentProjectName && (
+        <div className="project-name-display">{currentProjectName}</div>
+      )}
 
       <div className="menu-title">Kino</div>
     </div>
