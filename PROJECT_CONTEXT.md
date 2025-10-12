@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added LoRA support, System control menu, auto-restart script)
+**Last Updated:** 2025-10-12 (Added WebSocket real-time monitoring with CPU/GPU/MEM metrics)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -36,8 +36,12 @@ This file serves as a persistent context storage for AI assistance. It contains 
 - **Styling:** CSS Modules (dark theme)
 
 ### Communication
-- **Primary:** REST API
-- **Secondary:** WebSocket (to be implemented when needed for real-time features)
+- **Primary:** REST API (HTTP endpoints for CRUD operations)
+- **Real-time:** WebSocket (`ws://localhost:8000/ws`) for live metrics and task updates
+  - Heartbeat: 10 seconds
+  - Updates every: 2 seconds
+  - Auto-reconnect: 3 second delay
+  - Broadcasts: System metrics (CPU, GPU, MEM), task queue, current task progress
 
 ---
 
@@ -86,7 +90,8 @@ backend/
 │   ├── frames.py       # Frame CRUD handlers (v1)
 │   ├── generator.py    # Generator/task handlers (v1)
 │   ├── models.py       # Model management handlers (v1)
-│   └── system.py       # System control handlers (emergency stop, restart, shutdown)
+│   ├── system.py       # System control handlers (emergency stop, restart, shutdown)
+│   └── websocket.py    # WebSocket handler for real-time metrics and task updates
 ├── models/              # Pydantic data models
 │   ├── __init__.py
 │   ├── project.py      # Project models
@@ -97,7 +102,8 @@ backend/
 │   ├── project_service.py  # Project service layer
 │   ├── frame_service.py    # Frame service layer
 │   ├── generator_service.py # Generator/task management service (with stop_all_tasks)
-│   └── model_service.py    # Model management service (list categories, models)
+│   ├── model_service.py    # Model management service (list categories, models)
+│   └── system_monitor.py   # System resource monitoring (CPU, GPU, Memory)
 ├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
 │   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode, lora)
 │   ├── frames_routine.py # Frame saving utilities
@@ -152,7 +158,9 @@ frontend/
 │   ├── App.css          # Application layout styles
 │   ├── index.css        # Global styles and resets
 │   ├── api/             # API client and types
-│   │   └── client.ts   # Backend API client (projects, frames, health)
+│   │   └── client.ts   # Backend API client (projects, frames, health, models, system)
+│   ├── hooks/           # React custom hooks
+│   │   └── useWebSocket.ts  # WebSocket hook for real-time updates with auto-reconnect
 │   ├── components/      # React components
 │   │   ├── README.md           # Components documentation
 │   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, System, Help)
@@ -425,6 +433,7 @@ interface TaskCreate {
 
 ### Health & Monitoring
 - `GET /health` - Server health check with system metrics
+- `GET /ws` - WebSocket endpoint for real-time updates (see WebSocket Messages section)
 
 ### API v1 - General (Legacy)
 - `GET /api/v1/hello?name={name}` - Simple greeting endpoint
@@ -534,6 +543,44 @@ interface TaskCreate {
   - Errors: 404 if not found
 
 **Migration:** v1 endpoints continue to work. New development should use v2 for automatic documentation.
+
+### WebSocket Messages
+
+**Connection:** `ws://localhost:8000/ws`
+
+**Incoming messages (from server):**
+```json
+{
+  "type": "metrics",
+  "data": {
+    "cpu_percent": 4.5,
+    "memory_percent": 37.8,
+    "gpu_percent": 0.0,
+    "gpu_memory_percent": 0.0,
+    "gpu_available": false,
+    "queue_size": 0,
+    "current_task": {
+      "id": 123,
+      "name": "Generate Frame",
+      "progress": 45.5
+    } // or null if no task running
+  }
+}
+```
+
+**Outgoing messages (from client):**
+```json
+{"type": "ping"}  // Client heartbeat
+{"type": "close"} // Request close connection
+```
+
+**Server responses:**
+```json
+{"type": "pong"}  // Response to ping
+```
+
+**Update frequency:** Every 2 seconds
+**Heartbeat:** 10 seconds (automatic)
 
 ---
 
@@ -756,10 +803,17 @@ npm run dev
 - [x] Frontend: Width/Height in single row layout
 - [x] SDXL defaults updated (CFG: 3.5, Steps: 32)
 - [x] Parameter types: string, integer, float, model_selection, selection, lora_list
+- [x] WebSocket real-time communication (/ws endpoint)
+- [x] System monitoring (CPU, GPU, Memory) via WebSocket
+- [x] Frontend: useWebSocket hook with auto-reconnect
+- [x] Frontend: Real-time metrics display in MenuBar
+- [x] Frontend: Connection status indicator
+- [x] Task queue monitoring via WebSocket
+- [x] Current task progress in real-time
+- [x] GPU monitoring support (nvidia-ml-py3)
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window
-- [ ] Frontend: Task progress tracking UI
 - [ ] Frontend: Frame reload after generation completes
 - [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
 

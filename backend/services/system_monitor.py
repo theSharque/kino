@@ -7,10 +7,10 @@ from typing import Dict, Any, Optional
 
 class SystemMonitor:
     """Monitor system resources (CPU, GPU, Memory)"""
-    
+
     def __init__(self):
         self._gpu_available = self._check_gpu_available()
-    
+
     def _check_gpu_available(self) -> bool:
         """Check if GPU monitoring is available"""
         try:
@@ -18,11 +18,11 @@ class SystemMonitor:
             return torch.cuda.is_available()
         except:
             return False
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """
         Get current system metrics
-        
+
         Returns:
             Dict with cpu_percent, memory_percent, gpu_percent, gpu_memory_percent
         """
@@ -33,7 +33,7 @@ class SystemMonitor:
             'gpu_memory_percent': 0.0,
             'gpu_available': self._gpu_available
         }
-        
+
         if self._gpu_available:
             try:
                 import torch
@@ -43,17 +43,17 @@ class SystemMonitor:
                         import pynvml
                         pynvml.nvmlInit()
                         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-                        
+
                         # GPU utilization
                         util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                         metrics['gpu_percent'] = round(util.gpu, 1)
-                        
+
                         # GPU memory
                         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
                         metrics['gpu_memory_percent'] = round(
                             (mem_info.used / mem_info.total) * 100, 1
                         )
-                        
+
                         pynvml.nvmlShutdown()
                     except:
                         # Fallback to PyTorch memory info
@@ -65,9 +65,9 @@ class SystemMonitor:
                             )
             except Exception as e:
                 print(f"GPU monitoring error: {e}")
-        
+
         return metrics
-    
+
     def get_disk_usage(self, path: str = '/') -> Dict[str, Any]:
         """Get disk usage for a path"""
         try:

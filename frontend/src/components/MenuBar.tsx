@@ -176,27 +176,35 @@ export const MenuBar = ({
         {currentProjectName && (
           <span className="project-name">{currentProjectName}</span>
         )}
-        
+
         {systemMetrics && (
           <span className="metrics">
             {systemMetrics.queue_size > 0 && (
-              <span className="metric-item">Queue: {systemMetrics.queue_size}</span>
+              <span className="metric-item">
+                Queue: {systemMetrics.queue_size}
+              </span>
             )}
             {systemMetrics.current_task && (
               <span className="metric-item">
                 Current: {Math.round(systemMetrics.current_task.progress)}%
               </span>
             )}
-            <span className="metric-item">CPU: {systemMetrics.cpu_percent}%</span>
+            <span className="metric-item">
+              CPU: {systemMetrics.cpu_percent}%
+            </span>
             {systemMetrics.gpu_available && (
-              <span className="metric-item">GPU: {systemMetrics.gpu_percent}%</span>
+              <span className="metric-item">
+                GPU: {systemMetrics.gpu_percent}%
+              </span>
             )}
-            <span className="metric-item">MEM: {systemMetrics.memory_percent}%</span>
+            <span className="metric-item">
+              MEM: {systemMetrics.memory_percent}%
+            </span>
           </span>
         )}
-        
+
         <span className="app-title">KINO</span>
-        
+
         {!isConnected && (
           <span className="connection-status offline">● Offline</span>
         )}
