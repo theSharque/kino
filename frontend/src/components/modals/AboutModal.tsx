@@ -18,7 +18,9 @@ interface BackendHealth {
 const BACKEND_URL = "http://localhost:8000";
 
 export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
-  const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(null);
+  const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,7 +84,9 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
                 <span className="status-indicator status-ok">●</span>
                 <span className="status-label">Status:</span>
                 <span className="status-value">
-                  {backendHealth.status === "ok" ? "Online" : backendHealth.status}
+                  {backendHealth.status === "ok"
+                    ? "Online"
+                    : backendHealth.status}
                 </span>
               </div>
               <div className="status-row">
@@ -91,7 +95,9 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
               </div>
               <div className="status-row">
                 <span className="status-label">Python:</span>
-                <span className="status-value">{backendHealth.python_version}</span>
+                <span className="status-value">
+                  {backendHealth.python_version}
+                </span>
               </div>
               <div className="status-row">
                 <span className="status-label">CPU:</span>
@@ -126,4 +132,3 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
     </Modal>
   );
 };
-
