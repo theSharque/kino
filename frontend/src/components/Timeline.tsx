@@ -1,12 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react';
-import './Timeline.css';
-
-interface Frame {
-  id: number;
-  index: number;
-  thumbnailUrl?: string;
-  path?: string;
-}
+import { useRef, useEffect, useCallback } from "react";
+import { Frame } from "../api/client";
+import "./Timeline.css";
 
 interface TimelineProps {
   frames: Frame[];
@@ -14,10 +8,21 @@ interface TimelineProps {
   onFrameSelect: (index: number) => void;
 }
 
+// Helper to get frame thumbnail URL
+const getFrameThumbnailUrl = (frame: Frame): string | undefined => {
+  // TODO: Backend should provide thumbnail URL or serve images via API
+  // For now, construct URL from frame path
+  if (frame.path) {
+    const filename = frame.path.split("/").pop();
+    return `http://localhost:8000/data/frames/${filename}`;
+  }
+  return undefined;
+};
+
 export const Timeline = ({
   frames,
   currentFrameIndex,
-  onFrameSelect
+  onFrameSelect,
 }: TimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedFrameRef = useRef<HTMLDivElement>(null);
@@ -26,45 +31,49 @@ export const Timeline = ({
   useEffect(() => {
     if (selectedFrameRef.current && timelineRef.current) {
       selectedFrameRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
       });
     }
   }, [currentFrameIndex]);
 
-  const handleFrameClick = useCallback((index: number) => {
-    onFrameSelect(index);
-  }, [onFrameSelect]);
+  const handleFrameClick = useCallback(
+    (index: number) => {
+      onFrameSelect(index);
+    },
+    [onFrameSelect]
+  );
 
   return (
     <div className="timeline" ref={timelineRef}>
       <div className="timeline-scroll-container">
         {frames.length > 0 ? (
-          frames.map((frame) => (
-            <div
-              key={frame.id}
-              ref={frame.index === currentFrameIndex ? selectedFrameRef : null}
-              className={`timeline-frame ${frame.index === currentFrameIndex ? 'selected' : ''}`}
-              onClick={() => handleFrameClick(frame.index)}
-            >
-              {frame.thumbnailUrl ? (
-                <img
-                  src={frame.thumbnailUrl}
-                  alt={`Frame ${frame.index + 1}`}
-                  className="timeline-frame-image"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="timeline-frame-placeholder">
-                  {frame.index + 1}
-                </div>
-              )}
-              <div className="timeline-frame-number">
-                {frame.index + 1}
+          frames.map((frame, index) => {
+            const thumbnailUrl = getFrameThumbnailUrl(frame);
+            return (
+              <div
+                key={frame.id}
+                ref={index === currentFrameIndex ? selectedFrameRef : null}
+                className={`timeline-frame ${index === currentFrameIndex ? "selected" : ""}`}
+                onClick={() => handleFrameClick(index)}
+              >
+                {thumbnailUrl ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={`Frame ${index + 1}`}
+                    className="timeline-frame-image"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="timeline-frame-placeholder">
+                    {index + 1}
+                  </div>
+                )}
+                <div className="timeline-frame-number">{index + 1}</div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="timeline-empty">
             <p>No frames available</p>
@@ -75,4 +84,3 @@ export const Timeline = ({
     </div>
   );
 };
-
