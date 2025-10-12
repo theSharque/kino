@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Connected AboutModal to backend /health API - first API integration)
+**Last Updated:** 2025-10-12 (Added English-only rule, translated Russian text to English)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -183,7 +183,11 @@ frontend/
 
 ### General Principles
 1. **Write efficient, readable, and maintainable code**
-2. **All code, comments, and file content MUST be in English**
+2. **🔴 ALL CODE, COMMENTS, DOCUMENTATION, AND FILE CONTENT MUST BE IN ENGLISH ONLY**
+   - No Russian or any other language in source files
+   - No Russian in README.md, comments, or documentation
+   - Variable names, function names, strings - all English
+   - Exception: user-facing UI text (to be localized later if needed)
 3. **Use type hints in Python and TypeScript types in React**
 4. **Follow async/await patterns consistently**
 5. **Keep handlers small and focused - single responsibility**

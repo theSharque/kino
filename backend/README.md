@@ -14,65 +14,65 @@ AI-powered video project management and frame generation backend.
 - **ComfyUI** - Image generation backend
 - **Transformers, torchvision, torchaudio** - ML models
 
-## Установка
+## Installation
 
-1. Создайте виртуальное окружение:
+1. Create virtual environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-2. Установите зависимости:
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Создайте `.env` файл на основе `.env.example`:
+3. Create `.env` file based on `.env.example`:
 ```bash
 cp .env.example .env
 ```
 
-## Запуск
+## Running
 
 ```bash
-# Активируйте виртуальное окружение
+# Activate virtual environment
 source venv/bin/activate
 
-# Запустите сервер
+# Start server
 python main.py
 ```
 
-Сервер запустится на `http://0.0.0.0:8000`
+Server will start on `http://0.0.0.0:8000`
 
 ## API Documentation
 
 ### 📚 Swagger UI (Recommended)
-Интерактивная документация API с возможностью тестирования:
+Interactive API documentation with testing capabilities:
 ```
 http://localhost:8000/api/docs
 ```
 
 ### 📄 OpenAPI Specification
-JSON спецификация для импорта в Postman/Insomnia:
+JSON specification for import to Postman/Insomnia:
 ```
 http://localhost:8000/api/docs/spec
 ```
 
 ### 📖 Full Documentation
-Полное руководство см. в [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+Complete guide available in [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
 
 ## Quick Start
 
-### 1. Создайте проект
+### 1. Create a project
 ```bash
 curl -X POST http://localhost:8000/api/v2/projects \
   -H "Content-Type: application/json" \
   -d '{"name":"My Project","width":1920,"height":1080,"fps":30}'
 ```
 
-### 2. Запустите генерацию изображения (SDXL)
+### 2. Generate an image (SDXL)
 ```bash
-# Создайте задачу
+# Create task
 curl -X POST http://localhost:8000/api/v1/generator/tasks \
   -H "Content-Type: application/json" \
   -d '{
@@ -87,14 +87,14 @@ curl -X POST http://localhost:8000/api/v1/generator/tasks \
     }
   }'
 
-# Запустите генерацию (task_id из предыдущего ответа)
+# Start generation (use task_id from previous response)
 curl -X POST http://localhost:8000/api/v1/generator/tasks/1/generate
 
-# Проверьте прогресс
+# Check progress
 curl http://localhost:8000/api/v1/generator/tasks/1/progress
 ```
 
-### 3. Проверьте здоровье сервера
+### 3. Check server health
 ```bash
 curl http://localhost:8000/health
 ```
@@ -130,7 +130,7 @@ curl http://localhost:8000/health
 - **v2** - OpenAPI documented (PydanticView)
 - Both versions work simultaneously
 
-## Структура проекта
+## Project Structure
 
 ```
 backend/
