@@ -104,12 +104,16 @@
   gap: 1rem;
   font-size: 0.85rem;
   padding: 0 1rem;
+  position: relative;
 }
 
 .project-name {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   font-weight: 500;
   color: #fff;
-  margin-right: auto;
+  white-space: nowrap;
 }
 
 .metrics {
