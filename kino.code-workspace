@@ -131,18 +131,7 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "Python: Backend Server (Direct)",
-        "type": "debugpy",
-        "request": "launch",
-        "program": "${workspaceFolder:Backend (Python)}/main.py",
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:Backend (Python)}",
-        "env": {
-          "PYTHONPATH": "${workspaceFolder:Backend (Python)}"
-        }
-      },
-      {
-        "name": "Backend: Auto-Restart (run.sh)",
+        "name": "Backend: run.sh",
         "type": "node-terminal",
         "request": "launch",
         "command": "./run.sh",
@@ -158,13 +147,8 @@
     ],
     "compounds": [
       {
-        "name": "Full Stack (Auto-Restart)",
-        "configurations": ["Backend: Auto-Restart (run.sh)", "Frontend: Dev Server"],
-        "stopAll": true
-      },
-      {
-        "name": "Full Stack (Direct)",
-        "configurations": ["Python: Backend Server (Direct)", "Frontend: Dev Server"],
+        "name": "Full Stack",
+        "configurations": ["Backend: run.sh", "Frontend: Dev Server"],
         "stopAll": true
       }
     ]
