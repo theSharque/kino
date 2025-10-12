@@ -1,0 +1,99 @@
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build and distribution
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# Database
+*.db
+*.sqlite3
+
+# Data directory (keep directory structure, ignore all content except .gitkeep)
+data/*
+!data/frames/
+!data/projects/
+data/frames/*
+!data/frames/.gitkeep
+data/projects/*
+!data/projects/.gitkeep
+
+# AI Model files (keep directory structure)
+models_storage/DiffusionModels/*
+!models_storage/DiffusionModels/.gitkeep
+models_storage/StableDiffusion/*
+!models_storage/StableDiffusion/.gitkeep
+models_storage/Lora/*
+!models_storage/Lora/.gitkeep
+models_storage/TextEncoders/*
+!models_storage/TextEncoders/.gitkeep
+models_storage/ClipVision/*
+!models_storage/ClipVision/.gitkeep
+models_storage/VAE/*
+!models_storage/VAE/.gitkeep
+
+# ComfyUI files (keep directory structure)
+comfy/*
+!comfy/.gitkeep
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+pip-log.txt
+pip-delete-this-directory.txt
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Model files (large binary files should not be tracked in git)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.pb
+*.h5
+*.pkl
+*.pickle
+

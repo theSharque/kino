@@ -1,0 +1,124 @@
+# Kino Project - AI Assistant Rules
+
+## Primary Rule: Always Use PROJECT_CONTEXT.md
+
+**CRITICAL:** Before generating any code, making architectural decisions, or implementing features, you MUST:
+
+1. **READ** `/qs/kino/PROJECT_CONTEXT.md` first
+2. **FOLLOW** all conventions, patterns, and guidelines specified in it
+3. **UPDATE** the file when:
+   - Adding new API endpoints
+   - Creating new data models
+   - Implementing new features
+   - Making architectural changes
+   - Completing planned tasks
+   - Adding new dependencies
+   - Changing tech stack decisions
+
+## Code Generation Rules
+
+### Language Requirements
+- **All code, comments, documentation, and file content MUST be in English**
+- Variable names, function names, class names - English only
+- Code comments and docstrings - English only
+- API responses and error messages - English only
+- Exception: User-facing UI text (to be determined by project requirements)
+
+### Backend (Python/aiohttp)
+- Use async/await for all I/O operations
+- Add type hints to all functions
+- Use Pydantic models for request/response validation
+- Follow the handler pattern established in `backend/handlers/`
+- Add CORS configuration for all new routes
+- Update `routes.py` when adding new endpoints
+- Document new endpoints in PROJECT_CONTEXT.md
+
+### Frontend (React/TypeScript)
+- Use TypeScript for all components and logic
+- Create interfaces for all data structures
+- Use functional components with hooks
+- Match backend Pydantic models with TypeScript interfaces
+- Keep naming conventions consistent with backend (see PROJECT_CONTEXT.md)
+
+### Data Models
+- **CRITICAL:** Model names and field names MUST match between frontend and backend
+- Backend uses snake_case, frontend TypeScript uses snake_case in data transfer
+- Document all new models in PROJECT_CONTEXT.md
+
+### Testing
+- Test all new endpoints with curl before marking as complete
+- Verify CORS headers for frontend integration
+- Check Pydantic validation with invalid data
+
+## Workflow
+
+### Adding New Features
+1. Check PROJECT_CONTEXT.md for current state and patterns
+2. Implement the feature following established patterns
+3. Test the implementation
+4. Update PROJECT_CONTEXT.md:
+   - Add to API endpoints section if applicable
+   - Update database schema section if applicable
+   - Move from "Planned" to "Completed" in status
+   - Document any new models or patterns
+5. Update README.md if user-facing changes
+
+### Making Architectural Decisions
+1. Check if similar decisions are documented in PROJECT_CONTEXT.md
+2. Follow existing patterns
+3. If new pattern is needed, document the decision and rationale
+4. Update "Key Decisions & Rationale" section
+
+## Code Quality Standards
+
+- Write clean, readable, maintainable code
+- No code duplication - extract common patterns
+- Proper error handling with informative messages
+- Use descriptive variable and function names
+- Add docstrings to functions and classes
+- Keep functions small and focused (single responsibility)
+
+## Code Formatting Rules
+
+**CRITICAL:** Always follow these formatting rules:
+1. **No trailing whitespace** - No spaces at the end of lines
+2. **Empty lines must be truly empty** - No spaces or tabs on blank lines
+3. **Newline at end of file** - Every file must end with a newline character
+4. **Consistent indentation** - Use spaces (4 for Python, 2 for TypeScript)
+5. **No mixed line endings** - Use LF (Unix) line endings only
+
+## File Organization
+
+- Backend handlers organized by domain in `backend/handlers/`
+- Related code stays together
+- No circular dependencies
+- Import statements organized: stdlib, third-party, local
+
+## Security & Best Practices
+
+- Never commit .env files (already in .gitignore)
+- Validate all user input with Pydantic
+- Use proper HTTP status codes
+- Handle errors gracefully, don't expose internal details
+- SQL queries use parameterized statements (via aiosqlite)
+
+## Before Completing a Task
+
+- [ ] Code follows all conventions in PROJECT_CONTEXT.md
+- [ ] All text is in English
+- [ ] Models are synchronized between frontend/backend if applicable
+- [ ] New endpoints are tested with curl
+- [ ] PROJECT_CONTEXT.md is updated
+- [ ] No linter errors introduced
+- [ ] Code formatting rules applied (no trailing whitespace, newline at EOF)
+
+## Remember
+
+This project values:
+- Consistency over cleverness
+- Readability over brevity
+- Maintainability over quick fixes
+- Documentation over assumptions
+
+**The PROJECT_CONTEXT.md file is the single source of truth for this project.**
+
