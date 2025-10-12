@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Fixed CORS with middleware, fixed TypeScript type imports - app working!)
+**Last Updated:** 2025-10-12 (Added project name display in header and window title)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -655,6 +655,11 @@ npm run dev
 - [x] Frontend: Frames API integration (get by project)
 - [x] Frontend: Current project state management
 - [x] Frontend: Automatic frame loading when project selected
+- [x] Frontend: Project name display in MenuBar header
+- [x] Frontend: Dynamic window title (Kino - ProjectName)
+- [x] Frontend: Fixed TypeScript type imports (import type)
+- [x] Backend: Custom CORS middleware (replaced aiohttp-cors)
+- [x] Backend: CORS support for PydanticView routes
 - [x] Git ignore files for both projects
 - [x] Monorepo setup with single git repository
 - [x] Basic health check and info endpoints
