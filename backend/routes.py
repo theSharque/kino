@@ -35,6 +35,7 @@ def setup_routes(app: web.Application):
     # API v1 routes - Frames
     app.router.add_get('/api/v1/frames', frames.list_frames)
     app.router.add_get('/api/v1/frames/{id}', frames.get_frame)
+    app.router.add_get('/api/v1/frames/{id}/params', frames.get_frame_generation_params)
     app.router.add_post('/api/v1/frames', frames.create_frame)
     app.router.add_put('/api/v1/frames/{id}', frames.update_frame)
     app.router.add_delete('/api/v1/frames/{id}', frames.delete_frame)

@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import type { Frame } from "../api/client";
 import { getFrameImageUrl } from "../config/constants";
+import { ContextMenu } from "./ContextMenu";
 import "./Timeline.css";
 
 interface TimelineProps {
@@ -8,6 +9,8 @@ interface TimelineProps {
   currentFrameIndex: number;
   onFrameSelect: (index: number) => void;
   onAddFrame: () => void;
+  onRegenerateFrame?: (frameId: number, frameIndex: number) => void;
+  onDeleteFrame?: (frameId: number, frameIndex: number) => void;
 }
 
 // Helper to get frame thumbnail URL
@@ -20,9 +23,18 @@ export const Timeline = ({
   currentFrameIndex,
   onFrameSelect,
   onAddFrame,
+  onRegenerateFrame,
+  onDeleteFrame,
 }: TimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedFrameRef = useRef<HTMLDivElement>(null);
+  
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    frameId: number;
+    frameIndex: number;
+  } | null>(null);
 
   // Auto-scroll to selected frame
   useEffect(() => {
@@ -42,6 +54,35 @@ export const Timeline = ({
     [onFrameSelect]
   );
 
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent, frameId: number, frameIndex: number) => {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        frameId,
+        frameIndex,
+      });
+    },
+    []
+  );
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleRegenerateClick = useCallback(() => {
+    if (contextMenu && onRegenerateFrame) {
+      onRegenerateFrame(contextMenu.frameId, contextMenu.frameIndex);
+    }
+  }, [contextMenu, onRegenerateFrame]);
+
+  const handleDeleteClick = useCallback(() => {
+    if (contextMenu && onDeleteFrame) {
+      onDeleteFrame(contextMenu.frameId, contextMenu.frameIndex);
+    }
+  }, [contextMenu, onDeleteFrame]);
+
   return (
     <div className="timeline" ref={timelineRef}>
       <div className="timeline-scroll-container">
@@ -56,6 +97,7 @@ export const Timeline = ({
                 index === currentFrameIndex ? "selected" : ""
               }`}
               onClick={() => handleFrameClick(index)}
+              onContextMenu={(e) => handleContextMenu(e, frame.id, index)}
             >
               {thumbnailUrl ? (
                 <img
@@ -81,6 +123,28 @@ export const Timeline = ({
           <div className="timeline-frame-add-icon">+</div>
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={closeContextMenu}
+          items={[
+            {
+              label: "Regenerate",
+              icon: "🔄",
+              onClick: handleRegenerateClick,
+            },
+            {
+              label: "Delete",
+              icon: "🗑️",
+              onClick: handleDeleteClick,
+              danger: true,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from database import get_db
 from services.frame_service import FrameService
 from models.frame import FrameCreate, FrameUpdate, FrameListResponse
+from bricks.generation_params import load_generation_params, params_exist
 
 
 async def list_frames(request: web.Request) -> web.Response:
@@ -225,6 +226,49 @@ async def get_project_frames(request: web.Request) -> web.Response:
         return web.json_response({
             'error': 'Bad request',
             'message': 'Invalid project ID'
+        }, status=400)
+
+    except Exception as e:
+        return web.json_response({
+            'error': 'Internal server error',
+            'message': str(e)
+        }, status=500)
+
+
+async def get_frame_generation_params(request: web.Request) -> web.Response:
+    """
+    Get generation parameters for a frame
+
+    GET /api/v1/frames/{id}/params
+    """
+    try:
+        frame_id = int(request.match_info['id'])
+
+        db = get_db()
+        service = FrameService(db)
+
+        # Get frame to get its path
+        frame = await service.get_frame_by_id(frame_id)
+        if not frame:
+            return web.json_response({
+                'error': 'Not found',
+                'message': f'Frame with id {frame_id} not found'
+            }, status=404)
+
+        # Load generation params from JSON file
+        if not params_exist(frame.path):
+            return web.json_response({
+                'error': 'Not found',
+                'message': 'Generation parameters not found for this frame'
+            }, status=404)
+
+        params = load_generation_params(frame.path)
+        return web.json_response(params, status=200)
+
+    except ValueError:
+        return web.json_response({
+            'error': 'Bad request',
+            'message': 'Invalid frame ID'
         }, status=400)
 
     except Exception as e:

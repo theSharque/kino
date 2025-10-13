@@ -44,6 +44,10 @@ function App() {
 
   // Generator state
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
+  
+  // Frame context menu state
+  const [frameToDelete, setFrameToDelete] = useState<{ id: number; index: number } | null>(null);
+  const [regenerateParams, setRegenerateParams] = useState<Record<string, any> | null>(null);
 
   // Get FPS from project or use default
   const fps = currentProject?.fps || 24;
@@ -180,10 +184,70 @@ function App() {
     [handleFrameChange]
   );
 
-  const handleDeleteFrame = useCallback(() => {
-    // TODO: Call backend API to delete current frame
-    console.log("Delete frame:", currentFrameIndex + 1);
-  }, [currentFrameIndex]);
+  const handleDeleteFrame = useCallback(async () => {
+    if (!frameToDelete) return;
+
+    try {
+      await framesAPI.delete(frameToDelete.id);
+      
+      // Reload frames
+      if (currentProject) {
+        await loadProjectFrames(currentProject.id);
+      }
+      
+      // Adjust current frame index if needed
+      if (currentFrameIndex >= frames.length - 1) {
+        setCurrentFrameIndex(Math.max(0, frames.length - 2));
+      }
+      
+      setFrameToDelete(null);
+      setIsDeleteFrameModalOpen(false);
+    } catch (error) {
+      console.error("Failed to delete frame:", error);
+      alert("Failed to delete frame: " + (error as Error).message);
+    }
+  }, [frameToDelete, currentProject, frames.length, currentFrameIndex, loadProjectFrames]);
+  
+  const handleDeleteFrameFromTimeline = useCallback((frameId: number, frameIndex: number) => {
+    setFrameToDelete({ id: frameId, index: frameIndex });
+    setIsDeleteFrameModalOpen(true);
+  }, []);
+  
+  const handleRegenerateFrame = useCallback(async (frameId: number, frameIndex: number) => {
+    try {
+      // Load generation parameters for the frame
+      const params = await framesAPI.getGenerationParams(frameId);
+      
+      if (!params) {
+        alert("No generation parameters found for this frame");
+        return;
+      }
+      
+      // Extract plugin name from params
+      const pluginName = params.generator || params.plugin;
+      if (!pluginName) {
+        alert("Cannot determine generator plugin for this frame");
+        return;
+      }
+      
+      // Load plugins to find the right one
+      const plugins = await generatorAPI.getPlugins();
+      const plugin = plugins.find(p => p.name === pluginName);
+      
+      if (!plugin) {
+        alert(`Generator plugin '${pluginName}' not found`);
+        return;
+      }
+      
+      // Set plugin and params
+      setSelectedPlugin(plugin);
+      setRegenerateParams(params);
+      setIsGenerateFrameModalOpen(true);
+    } catch (error) {
+      console.error("Failed to load generation params:", error);
+      alert("Failed to load generation parameters: " + (error as Error).message);
+    }
+  }, []);
 
   // Generator handlers
   const handleAddFrame = useCallback(() => {
@@ -336,6 +400,8 @@ function App() {
           currentFrameIndex={currentFrameIndex}
           onFrameSelect={handleFrameSelect}
           onAddFrame={handleAddFrame}
+          onRegenerateFrame={handleRegenerateFrame}
+          onDeleteFrame={handleDeleteFrameFromTimeline}
         />
       </div>
 
@@ -361,9 +427,12 @@ function App() {
 
       <DeleteFrameModal
         isOpen={isDeleteFrameModalOpen}
-        onClose={() => setIsDeleteFrameModalOpen(false)}
+        onClose={() => {
+          setIsDeleteFrameModalOpen(false);
+          setFrameToDelete(null);
+        }}
         onConfirm={handleDeleteFrame}
-        frameNumber={currentFrameIndex + 1}
+        frameNumber={frameToDelete ? frameToDelete.index + 1 : currentFrameIndex + 1}
       />
 
       <AboutModal
@@ -379,11 +448,15 @@ function App() {
 
       <GenerateFrameModal
         isOpen={isGenerateFrameModalOpen}
-        onClose={() => setIsGenerateFrameModalOpen(false)}
+        onClose={() => {
+          setIsGenerateFrameModalOpen(false);
+          setRegenerateParams(null);
+        }}
         plugin={selectedPlugin}
         projectId={currentProject?.id || null}
         projectWidth={currentProject?.width}
         projectHeight={currentProject?.height}
+        initialParams={regenerateParams}
         onGenerate={handleGenerate}
       />
     </div>

@@ -12,6 +12,7 @@ interface GenerateFrameModalProps {
   projectId: number | null;
   projectWidth?: number;
   projectHeight?: number;
+  initialParams?: Record<string, any> | null;
   onGenerate: (pluginName: string, parameters: Record<string, any>) => void;
 }
 
@@ -22,6 +23,7 @@ export const GenerateFrameModal = ({
   projectId,
   projectWidth,
   projectHeight,
+  initialParams,
   onGenerate,
 }: GenerateFrameModalProps) => {
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -33,17 +35,20 @@ export const GenerateFrameModal = ({
     {}
   );
 
-  // Get default value for a parameter (with project overrides for width/height)
+  // Get default value for a parameter (with project overrides for width/height and initialParams)
   const getDefaultValue = (paramName: string, param: any): any => {
-    // Override width with project width if available
+    // First priority: initial params (from regenerate)
+    if (initialParams && paramName in initialParams) {
+      return initialParams[paramName];
+    }
+    // Second priority: project dimensions for width/height
     if (paramName === "width" && projectWidth) {
       return projectWidth;
     }
-    // Override height with project height if available
     if (paramName === "height" && projectHeight) {
       return projectHeight;
     }
-    // Otherwise use plugin default
+    // Last priority: plugin default
     return param.default;
   };
 
@@ -75,6 +80,26 @@ export const GenerateFrameModal = ({
 
     loadModels();
   }, [isOpen, plugin]);
+
+  // Initialize parameters from initialParams (for regenerate)
+  useEffect(() => {
+    if (!isOpen || !plugin) {
+      return;
+    }
+
+    // Initialize with defaults or initialParams
+    const initParams: Record<string, any> = {};
+    
+    Object.entries(plugin.parameters).forEach(([paramName, param]) => {
+      const defaultValue = getDefaultValue(paramName, param);
+      if (defaultValue !== undefined && defaultValue !== null) {
+        initParams[paramName] = defaultValue;
+      }
+    });
+    
+    setParameters(initParams);
+    setErrors({});
+  }, [isOpen, plugin, initialParams, projectWidth, projectHeight]);
 
   const handleInputChange = (paramName: string, value: any) => {
     setParameters((prev) => ({
