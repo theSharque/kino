@@ -28,7 +28,7 @@ export const Timeline = ({
 }: TimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedFrameRef = useRef<HTMLDivElement>(null);
-  
+
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;

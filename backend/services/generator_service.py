@@ -257,10 +257,10 @@ class GeneratorService:
             WHERE status = ?
         """
         rows = await self.db.fetch_all(query, (TaskStatus.PENDING.value,))
-        
+
         pending_ids = [row['id'] for row in rows]
         cleared_count = len(pending_ids)
-        
+
         if cleared_count > 0:
             # Update all pending tasks to stopped
             update_query = """
@@ -273,7 +273,7 @@ class GeneratorService:
                 update_query,
                 (TaskStatus.STOPPED.value, now, now, TaskStatus.PENDING.value)
             )
-        
+
         return cleared_count
 
     async def reset_all(self) -> Dict[str, int]:
@@ -283,7 +283,7 @@ class GeneratorService:
         """
         stopped_count = await self.stop_all_tasks()
         cleared_count = await self.clear_pending_tasks()
-        
+
         return {
             'stopped': stopped_count,
             'cleared': cleared_count
