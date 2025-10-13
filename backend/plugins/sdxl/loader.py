@@ -13,6 +13,7 @@ import torch
 from ..base_plugin import BasePlugin, PluginResult
 import bricks.comfy_bricks as comfy_bricks
 from bricks.generation_params import save_generation_params
+from bricks.comfy_constants import SAMPLER_NAMES, SCHEDULER_NAMES, RECOMMENDED_SAMPLERS, RECOMMENDED_SCHEDULERS
 from config import Config
 
 
@@ -48,6 +49,8 @@ class SDXLPlugin(BasePlugin):
         - cfg_scale: float (optional, default: 3.5) - CFG scale
         - model_name: str (required) - Model checkpoint filename in StableDiffusion folder
         - sampler: str (optional, default: "dpmpp_2m_sde") - Sampler name
+        - scheduler: str (optional, default: "sgm_uniform") - Scheduler type
+        - seed: int (optional, default: None) - Random seed (None = auto-generate)
         - loras: list (optional) - List of LoRA configurations with lora_name, strength_model, strength_clip
         - project_id: int (optional) - Project ID (automatically added by frontend)
         """
@@ -79,6 +82,7 @@ class SDXLPlugin(BasePlugin):
             steps = data.get('steps', 32)
             cfg_scale = data.get('cfg_scale', 3.5)
             sampler = data.get('sampler', 'dpmpp_2m_sde')
+            scheduler = data.get('scheduler', 'sgm_uniform')
             seed = data.get('seed', None)  # None = random seed
             project_id = data.get('project_id', None)
             loras = data.get('loras', [])  # List of LoRA configurations
@@ -181,6 +185,7 @@ class SDXLPlugin(BasePlugin):
                     steps,
                     cfg_scale,
                     sampler_name=sampler,
+                    scheduler=scheduler,
                     seed=seed
                 )
             except Exception as e:
@@ -245,6 +250,7 @@ class SDXLPlugin(BasePlugin):
                         'steps': steps,
                         'cfg_scale': cfg_scale,
                         'sampler': sampler,
+                        'scheduler': scheduler,
                         'seed': used_seed,  # Save the actual seed that was used
                         'model_name': model_name,
                         'loras': loras
@@ -272,6 +278,7 @@ class SDXLPlugin(BasePlugin):
                 'steps': steps,
                 'cfg_scale': cfg_scale,
                 'sampler': sampler,
+                'scheduler': scheduler,
                 'seed': used_seed,
                 'model_name': model_name,
                 'project_id': project_id
@@ -366,8 +373,15 @@ class SDXLPlugin(BasePlugin):
                     'type': 'selection',
                     'required': False,
                     'default': 'dpmpp_2m_sde',
-                    'options': ['euler', 'euler_a', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_karras', 'dpmpp_sde', 'ddim', 'uni_pc'],
-                    'description': 'Sampling algorithm'
+                    'options': RECOMMENDED_SAMPLERS,  # Use recommended list for better UX
+                    'description': 'Sampling algorithm (noise reduction method)'
+                },
+                'scheduler': {
+                    'type': 'selection',
+                    'required': False,
+                    'default': 'sgm_uniform',
+                    'options': SCHEDULER_NAMES,
+                    'description': 'Noise schedule (how noise is removed over steps)'
                 },
                 'seed': {
                     'type': 'integer',
