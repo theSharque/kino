@@ -314,10 +314,64 @@ from bricks.comfy_constants import (
 
 ---
 
+## Wan Video Generation Bricks 🎬 🆕
+
+For Wan (万物) image-to-video generation, use the specialized `wan_bricks` module:
+
+### wan_bricks Module
+
+The `wan_bricks.py` module provides components for Wan video generation workflow:
+
+- `load_clip_vision(clip_name)` - Load CLIP Vision model
+- `clip_vision_encode(clip_vision, image, crop)` - Encode image with CLIP Vision
+- `load_vae(vae_name)` - Load VAE model
+- `load_clip(clip_name, clip_type, device)` - Load CLIP text encoder (supports GGUF)
+- `wan_image_to_video(...)` - Prepare conditioning and latent for video generation
+
+**Quick Example:**
+```python
+from bricks.wan_bricks import (
+    load_clip, load_clip_vision, clip_vision_encode,
+    load_vae, wan_image_to_video
+)
+from bricks.comfy_bricks import clip_encode
+
+# Load models
+clip = load_clip("umt5_xxl.safetensors", clip_type="wan")
+clip_vision = load_clip_vision("clip_vision_g.safetensors")
+vae = load_vae("wan_2.1_vae.safetensors")
+
+# Encode text
+positive = clip_encode(clip, "a cat walking in garden")
+negative = clip_encode(clip, "blurry, low quality")
+
+# Encode reference image (optional)
+clip_vision_output = clip_vision_encode(clip_vision, image)
+
+# Setup video generation
+positive, negative, latent = wan_image_to_video(
+    positive, negative, vae,
+    width=832, height=480, length=81,
+    clip_vision_output=clip_vision_output,
+    start_image=first_frame
+)
+
+# Use with sampler and decode...
+```
+
+**Documentation:**
+- [Wan Bricks README](./README_WAN.md) - Detailed Wan bricks documentation
+- [Wan Components Summary](./WAN_COMPONENTS_SUMMARY.md) - Quick reference table
+- [Wan Workflow Diagram](./WAN_WORKFLOW_DIAGRAM.md) - Visual workflow guide
+- [Test Script](./test_wan_bricks.py) - Test and example script
+
+---
+
 ## See Also
 
 - [Plugin System](../plugins/README.md) - How to create generator plugins
 - [SDXL Plugin](../plugins/sdxl/loader.py) - Example of using bricks
-- [ComfyUI Documentation](../comfy/README.md) - ComfyUI backend info
+- [ComfyUI Integration](../COMFYUI_INTEGRATION.md) - Full ComfyUI setup guide
 - [Sampler Constants](./comfy_constants.py) - Full list of samplers and schedulers
+- [Generation Parameters](./README_PARAMS.md) - How to save/load generation params
 
