@@ -68,7 +68,11 @@ models_storage/VAE/*
 comfy/*
 !comfy/.gitkeep
 
-# Full ComfyUI installation (git submodule - don't track files)
+# Full ComfyUI installation (external git clone - don't track)
+# User should: git clone https://github.com/comfyanonymous/ComfyUI.git ComfyUI
+ComfyUI/*
+!ComfyUI/.gitkeep
+!ComfyUI/README.md
 # Integration guide is at backend/COMFYUI_INTEGRATION.md
 
 # Jupyter Notebook
