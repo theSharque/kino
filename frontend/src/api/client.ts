@@ -216,6 +216,18 @@ export const framesAPI = {
     fetchAPI<{ message: string }>(`/api/v1/frames/${id}`, {
       method: "DELETE",
     }),
+
+  /**
+   * Get frame generation parameters
+   */
+  getGenerationParams: async (frameId: number): Promise<Record<string, any> | null> => {
+    try {
+      return await fetchAPI<Record<string, any>>(`/api/v1/frames/${frameId}/params`);
+    } catch (error) {
+      // Return null if params don't exist
+      return null;
+    }
+  },
 };
 
 /**
