@@ -25,11 +25,11 @@ except ImportError as e:
 def test_imports():
     """Test that gguf_bricks can be imported"""
     print("Testing imports...")
-    
+
     if not GGUF_BRICKS_AVAILABLE:
         print(f"  ✗ gguf_bricks import failed: {IMPORT_ERROR}")
         return False
-    
+
     functions = [
         'load_unet_gguf',
         'load_clip_gguf',
@@ -37,14 +37,14 @@ def test_imports():
         'load_triple_clip_gguf',
         'get_gguf_info',
     ]
-    
+
     for func_name in functions:
         if hasattr(gguf_bricks, func_name):
             print(f"  ✓ {func_name} imported successfully")
         else:
             print(f"  ✗ {func_name} NOT FOUND")
             return False
-    
+
     return True
 
 
@@ -52,13 +52,13 @@ def check_gguf_support():
     """Check if ComfyUI-GGUF is available"""
     print("\nChecking GGUF Support:")
     print("=" * 60)
-    
+
     if not GGUF_BRICKS_AVAILABLE:
         print("  ✗ gguf_bricks not available")
         return False
-    
+
     info = gguf_bricks.get_gguf_info()
-    
+
     if info['available']:
         print("  ✓ ComfyUI-GGUF is installed and available")
     else:
@@ -69,7 +69,7 @@ def check_gguf_support():
         print("  cd ComfyUI-GGUF")
         print("  pip install -r requirements.txt")
         return False
-    
+
     return True
 
 
@@ -77,25 +77,25 @@ def print_quantization_types():
     """Print available quantization types"""
     if not GGUF_BRICKS_AVAILABLE:
         return
-    
+
     print("\nQuantization Types:")
     print("=" * 60)
-    
+
     info = gguf_bricks.get_gguf_info()
     quant_types = info['quantization_types']
-    
+
     print("\n{:<12} {}".format("Type", "Description"))
     print("-" * 60)
-    
+
     # Recommended types first
     recommended = ['Q4_K_S', 'Q5_K_M', 'Q8_0']
     for qtype in recommended:
         if qtype in quant_types:
             desc = quant_types[qtype]
             print("{:<12} {} ⭐ RECOMMENDED".format(qtype, desc))
-    
+
     print()
-    
+
     # Other types
     for qtype, desc in quant_types.items():
         if qtype not in recommended:
@@ -106,17 +106,17 @@ def print_supported_models():
     """Print supported model types"""
     if not GGUF_BRICKS_AVAILABLE:
         return
-    
+
     print("\nSupported Model Types:")
     print("=" * 60)
-    
+
     info = gguf_bricks.get_gguf_info()
     supported = info['supported_models']
-    
+
     print("\nDiffusion Models:")
     for model in supported['diffusion']:
         print(f"  • {model}")
-    
+
     print("\nText Encoders:")
     for model in supported['text_encoders']:
         print(f"  • {model}")
@@ -126,7 +126,7 @@ def print_function_signatures():
     """Print function signatures for reference"""
     print("\nFunction Signatures:")
     print("=" * 60)
-    
+
     print("\n1. load_unet_gguf(")
     print("       unet_name: str,")
     print("       dequant_dtype: str = 'default',")
@@ -134,20 +134,20 @@ def print_function_signatures():
     print("       patch_on_device: bool = False")
     print("   )")
     print("   → Returns: GGUF model")
-    
+
     print("\n2. load_clip_gguf(")
     print("       clip_name: str,")
     print("       clip_type: str = 'stable_diffusion'")
     print("   )")
     print("   → Returns: GGUF CLIP")
-    
+
     print("\n3. load_dual_clip_gguf(")
     print("       clip_name1: str,")
     print("       clip_name2: str,")
     print("       clip_type: str = 'sdxl'")
     print("   )")
     print("   → Returns: Dual GGUF CLIP")
-    
+
     print("\n4. load_triple_clip_gguf(")
     print("       clip_name1: str,")
     print("       clip_name2: str,")
@@ -155,7 +155,7 @@ def print_function_signatures():
     print("       clip_type: str = 'sd3'")
     print("   )")
     print("   → Returns: Triple GGUF CLIP")
-    
+
     print("\n5. get_gguf_info()")
     print("   → Returns: dict with GGUF info")
 
@@ -164,7 +164,7 @@ def print_usage_examples():
     """Print usage examples"""
     print("\nUsage Examples:")
     print("=" * 60)
-    
+
     print("\n# Example 1: Load quantized Flux")
     print("from bricks.gguf_bricks import load_unet_gguf, load_dual_clip_gguf")
     print("")
@@ -174,7 +174,7 @@ def print_usage_examples():
     print("    't5xxl-Q4_K_M.gguf',")
     print("    clip_type='flux'")
     print(")")
-    
+
     print("\n# Example 2: Load quantized Wan")
     print("from bricks.gguf_bricks import load_unet_gguf, load_clip_gguf")
     print("from bricks.wan_bricks import load_vae, load_clip_vision")
@@ -183,7 +183,7 @@ def print_usage_examples():
     print("clip = load_clip_gguf('umt5-xxl-Q8_0.gguf', clip_type='wan')")
     print("vae = load_vae('wan_2.1_vae.safetensors')")
     print("clip_vision = load_clip_vision('clip_vision_g.safetensors')")
-    
+
     print("\n# Example 3: Load SD3 with triple CLIP")
     print("from bricks.gguf_bricks import load_unet_gguf, load_triple_clip_gguf")
     print("")
@@ -212,7 +212,7 @@ def print_vram_comparison():
 if __name__ == "__main__":
     print("GGUF Bricks Test Script")
     print("=" * 60)
-    
+
     # Test imports
     if not test_imports():
         print("\n✗ Import test failed!")
@@ -220,19 +220,19 @@ if __name__ == "__main__":
         print("  cd /qs/kino/backend")
         print("  python bricks/test_gguf_bricks.py")
         sys.exit(1)
-    
+
     print("\n✓ All imports successful!")
-    
+
     # Check GGUF support
     gguf_available = check_gguf_support()
-    
+
     # Print info
     print_quantization_types()
     print_supported_models()
     print_function_signatures()
     print_usage_examples()
     print_vram_comparison()
-    
+
     # Final status
     print("\n" + "=" * 60)
     if gguf_available:

@@ -63,11 +63,11 @@ def load_unet_gguf(
 ):
     """
     Load diffusion model (UNET) in GGUF format.
-    
+
     Supports: Flux, Wan, SD3, SDXL, SD1, Aura, HiDream, Cosmos, LTXV, HyVid, Lumina2, etc.
-    
+
     Based on: UnetLoaderGGUF from ComfyUI-GGUF/nodes.py
-    
+
     Args:
         unet_name: Name of the GGUF model file from diffusion_models folder
         dequant_dtype: Data type for dequantization
@@ -81,14 +81,14 @@ def load_unet_gguf(
             - "target" - Use target dtype
             - "float32", "float16", "bfloat16" - Specific dtype
         patch_on_device: Whether to patch on device (False = offload, saves VRAM)
-        
+
     Returns:
         model: Loaded GGUF model wrapped in GGUFModelPatcher
-        
+
     Example:
         >>> # Load quantized Flux model
         >>> model = load_unet_gguf("flux1-dev-Q4_K_S.gguf")
-        >>> 
+        >>>
         >>> # Load with float16 dequantization
         >>> model = load_unet_gguf(
         ...     "wan-2.1-Q8_0.gguf",
@@ -96,13 +96,13 @@ def load_unet_gguf(
         ... )
     """
     check_gguf_available()
-    
+
     # Import GGUFModelPatcher here to avoid import errors if GGUF not available
     from nodes import GGUFModelPatcher  # type: ignore
-    
+
     # Setup operations with quantization settings
     ops = GGMLOps()
-    
+
     # Configure dequantization dtype
     if dequant_dtype in ("default", None):
         ops.Linear.dequant_dtype = None
@@ -110,7 +110,7 @@ def load_unet_gguf(
         ops.Linear.dequant_dtype = "target"
     else:
         ops.Linear.dequant_dtype = getattr(torch, dequant_dtype)
-    
+
     # Configure patch dtype
     if patch_dtype in ("default", None):
         ops.Linear.patch_dtype = None
@@ -118,24 +118,24 @@ def load_unet_gguf(
         ops.Linear.patch_dtype = "target"
     else:
         ops.Linear.patch_dtype = getattr(torch, patch_dtype)
-    
+
     # Load GGUF file
     unet_path = folder_paths.get_full_path("unet", unet_name)
     sd = gguf_sd_loader(unet_path)
-    
+
     # Load diffusion model with GGUF operations
     model = comfy.sd.load_diffusion_model_state_dict(
         sd, model_options={"custom_operations": ops}
     )
-    
+
     if model is None:
         logging.error(f"ERROR: Unsupported UNET {unet_path}")
         raise RuntimeError(f"ERROR: Could not detect model type of: {unet_path}")
-    
+
     # Wrap in GGUF model patcher
     model = GGUFModelPatcher.clone(model)
     model.patch_on_device = patch_on_device
-    
+
     return model
 
 
@@ -145,11 +145,11 @@ def load_clip_gguf(
 ):
     """
     Load CLIP text encoder in GGUF format.
-    
+
     Supports: T5, LLaMA, Qwen2VL, and standard CLIP variants
-    
+
     Based on: CLIPLoaderGGUF from ComfyUI-GGUF/nodes.py
-    
+
     Args:
         clip_name: Name of the GGUF CLIP file from text_encoders folder
             Can also be non-GGUF file (will load normally)
@@ -157,21 +157,21 @@ def load_clip_gguf(
             "stable_diffusion", "stable_cascade", "sd3", "stable_audio",
             "mochi", "ltxv", "pixart", "cosmos", "lumina2", "wan",
             "hidream", "chroma", "ace", "omnigen2", "qwen_image", "hunyuan_image"
-            
+
     Returns:
         clip: Loaded CLIP model wrapped in GGUFModelPatcher
-        
+
     Example:
         >>> # Load quantized T5 for Wan
         >>> clip = load_clip_gguf("umt5-xxl-Q8_0.gguf", clip_type="wan")
-        >>> 
+        >>>
         >>> # Load quantized T5 for SD3
         >>> clip = load_clip_gguf("t5xxl-Q4_K_M.gguf", clip_type="sd3")
     """
     check_gguf_available()
-    
+
     from nodes import GGUFModelPatcher  # type: ignore
-    
+
     # Get clip path and type
     clip_path = folder_paths.get_full_path("clip", clip_name)
     clip_type_enum = getattr(
@@ -179,13 +179,13 @@ def load_clip_gguf(
         clip_type.upper(),
         comfy.sd.CLIPType.STABLE_DIFFUSION
     )
-    
+
     # Load GGUF or regular file
     if clip_path.endswith(".gguf"):
         sd = gguf_clip_loader(clip_path)
     else:
         sd = comfy.utils.load_torch_file(clip_path, safe_load=True)  # type: ignore
-    
+
     # Load text encoder with GGUF operations
     clip = comfy.sd.load_text_encoder_state_dicts(
         clip_type=clip_type_enum,
@@ -196,10 +196,10 @@ def load_clip_gguf(
         },
         embedding_directory=folder_paths.get_folder_paths("embeddings"),
     )
-    
+
     # Wrap patcher in GGUF model patcher
     clip.patcher = GGUFModelPatcher.clone(clip.patcher)
-    
+
     return clip
 
 
@@ -210,11 +210,11 @@ def load_dual_clip_gguf(
 ):
     """
     Load dual CLIP text encoders in GGUF format.
-    
+
     Used for models that require two CLIP encoders (SDXL, SD3, Flux, etc.)
-    
+
     Based on: DualCLIPLoaderGGUF from ComfyUI-GGUF/nodes.py
-    
+
     Args:
         clip_name1: First CLIP file (e.g., "clip-l.gguf")
         clip_name2: Second CLIP file (e.g., "t5xxl.gguf")
@@ -225,10 +225,10 @@ def load_dual_clip_gguf(
             - "hunyuan_video" - HunyuanVideo
             - "hidream" - HiDream
             - "hunyuan_image" - HunyuanImage (qwen2.5vl 7b + byt5 small)
-            
+
     Returns:
         clip: Loaded dual CLIP model
-        
+
     Example:
         >>> # Load SDXL dual CLIP
         >>> clip = load_dual_clip_gguf(
@@ -236,7 +236,7 @@ def load_dual_clip_gguf(
         ...     "clip-g-Q8_0.gguf",
         ...     clip_type="sdxl"
         ... )
-        >>> 
+        >>>
         >>> # Load Flux dual CLIP
         >>> clip = load_dual_clip_gguf(
         ...     "clip-l.safetensors",
@@ -245,21 +245,21 @@ def load_dual_clip_gguf(
         ... )
     """
     check_gguf_available()
-    
+
     from nodes import GGUFModelPatcher  # type: ignore
-    
+
     # Get paths
     clip_path1 = folder_paths.get_full_path("clip", clip_name1)
     clip_path2 = folder_paths.get_full_path("clip", clip_name2)
     clip_paths = [clip_path1, clip_path2]
-    
+
     # Get clip type
     clip_type_enum = getattr(
         comfy.sd.CLIPType,
         clip_type.upper(),
         comfy.sd.CLIPType.STABLE_DIFFUSION
     )
-    
+
     # Load both CLIPs (GGUF or regular)
     clip_data = []
     for p in clip_paths:
@@ -268,7 +268,7 @@ def load_dual_clip_gguf(
         else:
             sd = comfy.utils.load_torch_file(p, safe_load=True)  # type: ignore
         clip_data.append(sd)
-    
+
     # Load text encoders
     clip = comfy.sd.load_text_encoder_state_dicts(
         clip_type=clip_type_enum,
@@ -279,10 +279,10 @@ def load_dual_clip_gguf(
         },
         embedding_directory=folder_paths.get_folder_paths("embeddings"),
     )
-    
+
     # Wrap patcher
     clip.patcher = GGUFModelPatcher.clone(clip.patcher)
-    
+
     return clip
 
 
@@ -294,20 +294,20 @@ def load_triple_clip_gguf(
 ):
     """
     Load triple CLIP text encoders in GGUF format.
-    
+
     Used for SD3 with all three text encoders.
-    
+
     Based on: TripleCLIPLoaderGGUF from ComfyUI-GGUF/nodes.py
-    
+
     Args:
         clip_name1: First CLIP file (e.g., "clip-l.gguf")
         clip_name2: Second CLIP file (e.g., "clip-g.gguf")
         clip_name3: Third CLIP file (e.g., "t5xxl.gguf")
         clip_type: Type (usually "sd3")
-        
+
     Returns:
         clip: Loaded triple CLIP model
-        
+
     Example:
         >>> # Load SD3 triple CLIP
         >>> clip = load_triple_clip_gguf(
@@ -318,22 +318,22 @@ def load_triple_clip_gguf(
         ... )
     """
     check_gguf_available()
-    
+
     from nodes import GGUFModelPatcher  # type: ignore
-    
+
     # Get paths
     clip_path1 = folder_paths.get_full_path("clip", clip_name1)
     clip_path2 = folder_paths.get_full_path("clip", clip_name2)
     clip_path3 = folder_paths.get_full_path("clip", clip_name3)
     clip_paths = [clip_path1, clip_path2, clip_path3]
-    
+
     # Get clip type
     clip_type_enum = getattr(
         comfy.sd.CLIPType,
         clip_type.upper(),
         comfy.sd.CLIPType.STABLE_DIFFUSION
     )
-    
+
     # Load all three CLIPs
     clip_data = []
     for p in clip_paths:
@@ -342,7 +342,7 @@ def load_triple_clip_gguf(
         else:
             sd = comfy.utils.load_torch_file(p, safe_load=True)  # type: ignore
         clip_data.append(sd)
-    
+
     # Load text encoders
     clip = comfy.sd.load_text_encoder_state_dicts(
         clip_type=clip_type_enum,
@@ -353,10 +353,10 @@ def load_triple_clip_gguf(
         },
         embedding_directory=folder_paths.get_folder_paths("embeddings"),
     )
-    
+
     # Wrap patcher
     clip.patcher = GGUFModelPatcher.clone(clip.patcher)
-    
+
     return clip
 
 
@@ -381,7 +381,7 @@ GGUF_QUANT_TYPES = {
 def get_gguf_info():
     """
     Get information about GGUF support and available quantization types.
-    
+
     Returns:
         dict: Information about GGUF availability and quant types
     """
