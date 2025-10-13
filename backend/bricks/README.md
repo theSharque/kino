@@ -314,6 +314,43 @@ from bricks.comfy_constants import (
 
 ---
 
+## GGUF Quantized Models 🗜️ 🆕
+
+For loading quantized models in GGUF format, use the `gguf_bricks` module:
+
+### gguf_bricks Module
+
+The `gguf_bricks.py` module provides functions for loading GGUF quantized models:
+
+- `load_unet_gguf(unet_name, ...)` - Load diffusion model GGUF (Flux, Wan, SD3, etc.)
+- `load_clip_gguf(clip_name, clip_type)` - Load CLIP text encoder GGUF
+- `load_dual_clip_gguf(...)` - Load dual CLIP GGUF (SDXL, Flux, SD3)
+- `load_triple_clip_gguf(...)` - Load triple CLIP GGUF (SD3)
+- `get_gguf_info()` - Get GGUF support info
+
+**Benefits:**
+- 4-8x smaller model size
+- Lower VRAM usage
+- Faster loading
+- Good quality (especially Q5-Q8)
+
+**Quick Example:**
+```python
+from bricks.gguf_bricks import load_unet_gguf, load_clip_gguf
+
+# Load quantized Flux
+model = load_unet_gguf("flux1-dev-Q4_K_S.gguf")
+clip = load_clip_gguf("t5xxl-Q4_K_M.gguf", clip_type="flux")
+
+# Use with normal sampling...
+```
+
+**Documentation:**
+- [GGUF Bricks README](./README_GGUF.md) - Detailed GGUF documentation
+- [Test Script](./test_gguf_bricks.py) - Test and examples
+
+---
+
 ## Wan Video Generation Bricks 🎬 🆕
 
 For Wan (万物) image-to-video generation, use the specialized `wan_bricks` module:
