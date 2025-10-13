@@ -12,6 +12,7 @@ import torch
 
 from ..base_plugin import BasePlugin, PluginResult
 import bricks.comfy_bricks as comfy_bricks
+from bricks.generation_params import save_generation_params
 from config import Config
 
 
@@ -78,6 +79,7 @@ class SDXLPlugin(BasePlugin):
             steps = data.get('steps', 32)
             cfg_scale = data.get('cfg_scale', 3.5)
             sampler = data.get('sampler', 'dpmpp_2m_sde')
+            seed = data.get('seed', None)  # None = random seed
             project_id = data.get('project_id', None)
             loras = data.get('loras', [])  # List of LoRA configurations
 
@@ -171,14 +173,15 @@ class SDXLPlugin(BasePlugin):
             # Step 4: Run KSampler (20% -> 85%)
             await self.update_progress(25.0, progress_callback)
             try:
-                sample = comfy_bricks.common_ksampler(
+                sample, used_seed = comfy_bricks.common_ksampler(
                     self.model,
                     latent,
                     positive,
                     negative,
                     steps,
                     cfg_scale,
-                    sampler_name=sampler
+                    sampler_name=sampler,
+                    seed=seed
                 )
             except Exception as e:
                 return PluginResult(
@@ -227,6 +230,28 @@ class SDXLPlugin(BasePlugin):
 
                 output_path_str = str(output_path)
 
+                # Save generation parameters to JSON file
+                save_generation_params(
+                    output_path=output_path_str,
+                    plugin_name='sdxl',
+                    plugin_version='1.0.0',
+                    task_id=task_id,
+                    timestamp=timestamp,
+                    parameters={
+                        'prompt': prompt,
+                        'negative_prompt': negative_prompt,
+                        'width': width,
+                        'height': height,
+                        'steps': steps,
+                        'cfg_scale': cfg_scale,
+                        'sampler': sampler,
+                        'seed': used_seed,  # Save the actual seed that was used
+                        'model_name': model_name,
+                        'loras': loras
+                    },
+                    project_id=project_id
+                )
+
             except Exception as e:
                 return PluginResult(
                     success=False,
@@ -247,6 +272,7 @@ class SDXLPlugin(BasePlugin):
                 'steps': steps,
                 'cfg_scale': cfg_scale,
                 'sampler': sampler,
+                'seed': used_seed,
                 'model_name': model_name,
                 'project_id': project_id
             }
@@ -342,6 +368,14 @@ class SDXLPlugin(BasePlugin):
                     'default': 'dpmpp_2m_sde',
                     'options': ['euler', 'euler_a', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_karras', 'dpmpp_sde', 'ddim', 'uni_pc'],
                     'description': 'Sampling algorithm'
+                },
+                'seed': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': None,
+                    'min': 1,
+                    'max': 2147483647,
+                    'description': 'Random seed for reproducibility (leave empty for random)'
                 },
                 'loras': {
                     'type': 'lora_list',

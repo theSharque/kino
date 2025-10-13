@@ -201,9 +201,18 @@ export const MenuBar = ({
               CPU: {systemMetrics.cpu_percent}%
             </span>
             {systemMetrics.gpu_available && (
-              <span className="metric-item">
-                GPU: {systemMetrics.gpu_percent}%
-              </span>
+              <>
+                <span
+                  className="metric-item"
+                  title={`GPU Type: ${systemMetrics.gpu_type.toUpperCase()}`}
+                >
+                  {systemMetrics.gpu_type.toUpperCase()}:{" "}
+                  {systemMetrics.gpu_percent}%
+                </span>
+                <span className="metric-item" title="GPU Memory Usage">
+                  VRAM: {systemMetrics.gpu_memory_percent}%
+                </span>
+              </>
             )}
             <span className="metric-item">
               MEM: {systemMetrics.memory_percent}%

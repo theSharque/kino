@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-12 (Added WebSocket real-time monitoring with CPU/GPU/MEM metrics)
+**Last Updated:** 2025-10-13 (Width/Height auto-filled from project dimensions in generation modal)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -41,7 +41,8 @@ This file serves as a persistent context storage for AI assistance. It contains 
   - Heartbeat: 10 seconds
   - Updates every: 2 seconds
   - Auto-reconnect: 3 second delay
-  - Broadcasts: System metrics (CPU, GPU, MEM), task queue, current task progress
+  - Broadcasts: System metrics (CPU, GPU type/usage, GPU VRAM, RAM), task queue, current task progress
+  - GPU Support: Intel XPU (Arc GPU) and NVIDIA CUDA auto-detection
 
 ---
 
@@ -103,11 +104,14 @@ backend/
 │   ├── frame_service.py    # Frame service layer
 │   ├── generator_service.py # Generator/task management service (with stop_all_tasks)
 │   ├── model_service.py    # Model management service (list categories, models)
-│   └── system_monitor.py   # System resource monitoring (CPU, GPU, Memory)
+│   ├── system_monitor.py   # System resource monitoring (CPU, GPU [XPU/CUDA], VRAM, Memory)
+│   └── test_gpu_detection.py # GPU detection test script
 ├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
 │   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode, lora)
 │   ├── frames_routine.py # Frame saving utilities
-│   └── README.md       # Bricks documentation and usage examples
+│   ├── generation_params.py # Generation parameters storage (save/load JSON metadata)
+│   ├── README.md       # Bricks documentation and usage examples
+│   └── README_PARAMS.md # Generation parameters documentation
 ├── comfy/               # ComfyUI backend integration (full ComfyUI codebase)
 │   ├── sd.py           # Stable Diffusion implementations
 │   ├── model_management.py # Model loading and memory management
@@ -157,6 +161,9 @@ frontend/
 │   ├── App.tsx          # Main application component (MenuBar + 70/30 layout + modals)
 │   ├── App.css          # Application layout styles
 │   ├── index.css        # Global styles and resets
+│   ├── config/          # Configuration constants
+│   │   ├── constants.ts # Centralized constants (API URLs, app name, version, helpers)
+│   │   └── README.md    # Configuration documentation
 │   ├── api/             # API client and types
 │   │   └── client.ts   # Backend API client (projects, frames, health, models, system)
 │   ├── hooks/           # React custom hooks
@@ -189,7 +196,7 @@ frontend/
 ├── public/              # Public assets
 ├── node_modules/        # NPM dependencies (gitignored)
 ├── .gitignore
-├── package.json         # Dependencies (React 19, react-window, TypeScript)
+├── package.json         # Dependencies (React 19, react-window, TypeScript) - version 1.0.0
 ├── tsconfig.json        # TypeScript configuration
 ├── tsconfig.app.json    # App-specific TS config
 ├── tsconfig.node.json   # Node-specific TS config
@@ -810,7 +817,34 @@ npm run dev
 - [x] Frontend: Connection status indicator
 - [x] Task queue monitoring via WebSocket
 - [x] Current task progress in real-time
-- [x] GPU monitoring support (nvidia-ml-py3)
+- [x] GPU monitoring support (Intel XPU + NVIDIA CUDA)
+- [x] Backend: GPU auto-detection via PyTorch (torch.xpu / torch.cuda)
+- [x] Backend: GPU type identification (xpu/cuda/none)
+- [x] Backend: GPU utilization and memory monitoring
+- [x] Backend: XPU metrics via torch.xpu.memory_allocated/reserved
+- [x] Backend: CUDA metrics via nvidia-ml-py3 (with PyTorch fallback)
+- [x] Frontend: GPU type display in MenuBar (XPU/CUDA)
+- [x] Frontend: GPU utilization percentage display
+- [x] Frontend: VRAM (GPU memory) percentage display
+- [x] Frontend: Centralized configuration constants (src/config/)
+- [x] Frontend: API URLs centralized (API_BASE_URL, WS_URL)
+- [x] Frontend: App name and version constants (APP_NAME, APP_VERSION)
+- [x] Frontend: Helper function getFrameImageUrl()
+- [x] Frontend: Version synced with package.json (1.0.0)
+- [x] Test script: GPU detection test (services/test_gpu_detection.py)
+- [x] Backend: Generation parameters JSON storage (bricks/generation_params.py)
+- [x] Backend: Auto-save parameters with each generated frame
+- [x] Backend: Load parameters for frame regeneration
+- [x] SDXL plugin: Parameters saved to JSON alongside images
+- [x] Documentation: Generation parameters guide (README_PARAMS.md)
+- [x] Backend: Seed parameter for reproducible generation
+- [x] SDXL plugin: Seed support (optional, random if not specified)
+- [x] Bricks: common_ksampler returns used seed
+- [x] Auto-save actual seed used (even if random was generated)
+- [x] Frontend: Width/Height auto-filled from project dimensions
+- [x] Frontend: "from project" label when using project dimensions
+- [x] Frontend: Fixed null default value handling in GenerateFrameModal
+- [x] Smart defaults: Project dimensions override plugin defaults
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window
@@ -908,6 +942,34 @@ npm run dev
     - Root .gitignore for common rules (IDE, OS files)
     - Atomic commits for full-stack features
     - Simplified deployment and CI/CD
+
+12. **GPU Monitoring Strategy**
+    - **PyTorch-based detection:** Uses existing PyTorch dependency for GPU detection
+    - **Multi-vendor support:** Intel XPU (Arc GPU) and NVIDIA CUDA
+    - **Auto-detection:** Automatically detects available GPU type on server start
+    - **XPU metrics:** Uses `torch.xpu.memory_allocated()` and `torch.xpu.memory_reserved()`
+      - GPU utilization estimated from memory usage (80% heuristic)
+      - More accurate solution would require Intel level-zero library
+    - **CUDA metrics:** Primary via nvidia-ml-py3 (pynvml), fallback to PyTorch
+    - **Graceful degradation:** Works without GPU, shows CPU-only mode
+    - **Real-time updates:** GPU metrics broadcast via WebSocket every 2 seconds
+    - **Frontend display:** Shows GPU type (XPU/CUDA), utilization %, VRAM %
+
+13. **Generation Parameters Storage**
+    - **Auto-save:** Every generated frame gets a companion JSON file
+    - **Same naming:** `frame_001.png` → `frame_001.json` (same base name)
+    - **Location:** JSON files stored alongside images in frames directory
+    - **Content:** All generation parameters (prompt, model, settings, LoRAs, seed, etc.)
+    - **Metadata:** Plugin name, version, timestamp, task ID
+    - **Seed support:**
+      - Optional seed parameter for exact reproducibility
+      - If not provided, random seed is generated
+      - Actual seed always saved to JSON (even if random)
+      - Same seed + parameters = identical image
+    - **Reproducibility:** Can regenerate identical frames from JSON
+    - **Variations:** Modify JSON parameters to create variations
+    - **API:** `save_generation_params()`, `load_generation_params()` utilities
+    - **Format:** Human-readable JSON with 2-space indentation, UTF-8 encoding
 
 ---
 

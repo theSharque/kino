@@ -2,6 +2,8 @@
 
 React components for the Kino video editor interface.
 
+**Last Updated:** 2025-10-13 - Added project dimensions auto-fill in GenerateFrameModal
+
 ## Main Components
 
 ### FrameViewer
@@ -212,6 +214,65 @@ Access at: http://localhost:5173
 ```bash
 npm run build
 ```
+
+## Modal Components
+
+### GenerateFrameModal
+
+Dynamic form generator for creating frames using selected plugin.
+
+**Location:** `src/components/modals/GenerateFrameModal.tsx`
+
+**Props:**
+```typescript
+interface GenerateFrameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  plugin: PluginInfo | null;
+  projectId: number | null;
+  projectWidth?: number;   // 🆕 Auto-fills width field
+  projectHeight?: number;  // 🆕 Auto-fills height field
+  onGenerate: (pluginName: string, parameters: Record<string, any>) => void;
+}
+```
+
+**Features:**
+- **Dynamic form generation** from plugin parameter definitions
+- **Smart defaults** - Project dimensions override plugin defaults
+  - Width: Uses `projectWidth` if provided, otherwise plugin default
+  - Height: Uses `projectHeight` if provided, otherwise plugin default
+  - Visual indicator: "(from project)" label when using project dimensions
+- **Parameter types supported:**
+  - `string` - Text input or textarea
+  - `integer` - Number input (step=1)
+  - `float` - Decimal input (step=0.01)
+  - `selection` - Dropdown with predefined options
+  - `model_selection` - Auto-populated from backend models
+  - `lora_list` - Dynamic LoRA list component
+- **Field validation** - Required fields, min/max ranges
+- **Model auto-loading** - Fetches available models from backend
+- **Null-safe defaults** - Handles null default values correctly
+
+**Example Usage:**
+```typescript
+<GenerateFrameModal
+  isOpen={isOpen}
+  onClose={handleClose}
+  plugin={selectedPlugin}
+  projectId={currentProject?.id || null}
+  projectWidth={currentProject?.width}    // 🆕 Auto-fills width
+  projectHeight={currentProject?.height}  // 🆕 Auto-fills height
+  onGenerate={handleGenerate}
+/>
+```
+
+**Benefits:**
+- Generates frames that match project dimensions by default
+- No need to manually adjust width/height for each generation
+- Clear visual feedback when using project dimensions
+- Can still override if needed
+
+---
 
 ## Dependencies
 

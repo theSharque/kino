@@ -60,7 +60,7 @@ latent = comfy_bricks.generate_latent_image(1024, 1024)
 
 ---
 
-### 4. `common_ksampler(model, latent, positive, negative, steps, cfg, ...)`
+### 4. `common_ksampler(model, latent, positive, negative, steps, cfg, ...)`  🆕 **UPDATED**
 
 Runs the sampling process to generate images.
 
@@ -74,16 +74,29 @@ Runs the sampling process to generate images.
 - `sampler_name` (str, optional): Sampler algorithm (default: "dpmpp_2m_sde")
 - `scheduler` (str, optional): Scheduler type (default: "sgm_uniform")
 - `denoise` (float, optional): Denoise strength (default: 1.0)
+- `seed` (int, optional): **🆕 NEW!** Random seed for reproducibility (default: None = random)
 
 **Returns:**
-- Dict: `{"samples": sampled_latent}`
+- **Tuple:** `(output_dict, used_seed)` 🆕 **CHANGED!** Now returns both output and seed
+  - `output_dict`: `{"samples": sampled_latent}`
+  - `used_seed`: Integer seed that was used (either provided or randomly generated)
 
 **Example:**
 ```python
-sample = comfy_bricks.common_ksampler(
+# With random seed (seed will be auto-generated)
+sample, seed = comfy_bricks.common_ksampler(
     model, latent, positive, negative,
     steps=30, cfg=7.5,
     sampler_name="dpmpp_2m_sde"
+)
+print(f"Used seed: {seed}")  # Save this for reproducibility!
+
+# With specific seed for exact reproduction
+sample, seed = comfy_bricks.common_ksampler(
+    model, latent, positive, negative,
+    steps=30, cfg=7.5,
+    sampler_name="dpmpp_2m_sde",
+    seed=123456789  # Same seed = same image
 )
 ```
 

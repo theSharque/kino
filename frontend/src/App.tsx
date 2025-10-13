@@ -12,6 +12,7 @@ import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
 import type { Project, Frame, PluginInfo } from "./api/client";
 import { framesAPI, generatorAPI, systemAPI } from "./api/client";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { getFrameImageUrl, APP_NAME } from "./config/constants";
 import "./App.css";
 
 function App() {
@@ -288,17 +289,15 @@ function App() {
   // Update document title when project changes
   useEffect(() => {
     if (currentProject) {
-      document.title = `Kino - ${currentProject.name}`;
+      document.title = `${APP_NAME} - ${currentProject.name}`;
     } else {
-      document.title = "Kino";
+      document.title = APP_NAME;
     }
   }, [currentProject]);
 
   // Get current frame URL
   const currentFrameUrl = frames[currentFrameIndex]
-    ? `http://localhost:8000/data/frames/${frames[currentFrameIndex].path
-        .split("/")
-        .pop()}`
+    ? getFrameImageUrl(frames[currentFrameIndex].path)
     : undefined;
 
   return (
@@ -383,6 +382,8 @@ function App() {
         onClose={() => setIsGenerateFrameModalOpen(false)}
         plugin={selectedPlugin}
         projectId={currentProject?.id || null}
+        projectWidth={currentProject?.width}
+        projectHeight={currentProject?.height}
         onGenerate={handleGenerate}
       />
     </div>

@@ -2,9 +2,7 @@
  * WebSocket hook for real-time updates from backend
  */
 import { useState, useEffect, useCallback, useRef } from "react";
-
-const WS_URL = "ws://localhost:8000/ws";
-const RECONNECT_DELAY = 3000; // 3 seconds
+import { WS_URL, WS_RECONNECT_DELAY } from "../config/constants";
 
 export interface SystemMetrics {
   cpu_percent: number;
@@ -12,6 +10,7 @@ export interface SystemMetrics {
   gpu_percent: number;
   gpu_memory_percent: number;
   gpu_available: boolean;
+  gpu_type: string; // 'xpu' (Intel Arc), 'cuda' (NVIDIA), or 'none'
   queue_size: number;
   current_task: {
     id: number;
@@ -76,7 +75,7 @@ export const useWebSocket = () => {
         reconnectTimeoutRef.current = window.setTimeout(() => {
           console.log("🔄 Reconnecting WebSocket...");
           connect();
-        }, RECONNECT_DELAY);
+        }, WS_RECONNECT_DELAY);
       };
 
       wsRef.current = ws;
@@ -87,7 +86,7 @@ export const useWebSocket = () => {
       // Schedule reconnect
       reconnectTimeoutRef.current = window.setTimeout(() => {
         connect();
-      }, RECONNECT_DELAY);
+      }, WS_RECONNECT_DELAY);
     }
   }, []);
 

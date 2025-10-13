@@ -29,8 +29,10 @@ def generate_latent_image(width, height):
 
 
 def common_ksampler(model, latent, positive, negative, steps, cfg, sampler_name='dpmpp_2m_sde', scheduler='sgm_uniform',
-                    denoise=1.0, disable_noise=False, start_step=None, last_step=None, force_full_denoise=False):
-    seed = random.randint(1, 1000000000)
+                    denoise=1.0, disable_noise=False, start_step=None, last_step=None, force_full_denoise=False, seed=None):
+    # Generate random seed if not provided
+    if seed is None:
+        seed = random.randint(1, 1000000000)
 
     latent_image = latent["samples"]
     latent_image = fix_empty_latent_channels(model, latent_image)
@@ -53,7 +55,8 @@ def common_ksampler(model, latent, positive, negative, steps, cfg, sampler_name=
                      disable_pbar=disable_pbar, seed=seed)
     out = latent.copy()
     out["samples"] = samples
-    return out
+    # Return both output and the seed that was used
+    return out, seed
 
 
 def vae_decode(vae, samples):

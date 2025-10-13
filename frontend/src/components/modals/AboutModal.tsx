@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { Modal } from "../Modal";
 import type { BackendHealth } from "../../api/client";
 import { healthAPI } from "../../api/client";
+import { API_BASE_URL, APP_NAME, APP_VERSION } from "../../config/constants";
 import "./AboutModal.css";
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const BACKEND_URL = "http://localhost:8000";
 
 export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
   const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(
@@ -31,17 +30,24 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
           setLoading(false);
         })
         .catch((err) => {
-          setError(err instanceof Error ? err.message : "Failed to connect to backend");
+          setError(
+            err instanceof Error ? err.message : "Failed to connect to backend"
+          );
           setLoading(false);
         });
     }
   }, [isOpen]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="About Kino" size="medium">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`About ${APP_NAME}`}
+      size="medium"
+    >
       <div className="about-content">
-        <h1 className="about-logo">🎬 Kino</h1>
-        <p className="about-version">Version 1.0.0</p>
+        <h1 className="about-logo">🎬 {APP_NAME}</h1>
+        <p className="about-version">Version {APP_VERSION}</p>
         <p className="about-description">
           AI-powered video project management and frame generation system
         </p>
@@ -102,14 +108,14 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
               </div>
               <div className="status-row">
                 <span className="status-label">URL:</span>
-                <span className="status-value status-url">{BACKEND_URL}</span>
+                <span className="status-value status-url">{API_BASE_URL}</span>
               </div>
             </div>
           ) : null}
         </div>
 
         <div className="about-footer">
-          <p>© 2025 Kino Project</p>
+          <p>© 2025 {APP_NAME} Project</p>
         </div>
 
         <div className="form-actions">
