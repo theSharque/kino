@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-13 (Width/Height auto-filled from project dimensions in generation modal)
+**Last Updated:** 2025-10-13 (Added full ComfyUI samplers/schedulers support - 40+ samplers, 9 schedulers)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -108,6 +108,7 @@ backend/
 │   └── test_gpu_detection.py # GPU detection test script
 ├── bricks/              # ComfyUI connector layer (bridge between Kino and ComfyUI)
 │   ├── comfy_bricks.py # ComfyUI wrapper functions (load checkpoint, encode, sample, decode, lora)
+│   ├── comfy_constants.py # ComfyUI constants (40+ samplers, 9 schedulers)
 │   ├── frames_routine.py # Frame saving utilities
 │   ├── generation_params.py # Generation parameters storage (save/load JSON metadata)
 │   ├── README.md       # Bricks documentation and usage examples
@@ -845,6 +846,12 @@ npm run dev
 - [x] Frontend: "from project" label when using project dimensions
 - [x] Frontend: Fixed null default value handling in GenerateFrameModal
 - [x] Smart defaults: Project dimensions override plugin defaults
+- [x] Backend: ComfyUI constants module (40+ samplers, 9 schedulers)
+- [x] Backend: Full sampler list from ComfyUI (KSAMPLER_NAMES + extras)
+- [x] Backend: Full scheduler list from ComfyUI (SCHEDULER_HANDLERS)
+- [x] SDXL plugin: Scheduler parameter added
+- [x] SDXL plugin: Recommended samplers list for better UX
+- [x] Documentation: Sampler and scheduler combinations guide
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window
@@ -1115,7 +1122,13 @@ from bricks.frames_routine import save_frame
 frames = save_frame(project_name, frame_id, image)
 ```
 
-**Available samplers:** `euler`, `euler_a`, `dpmpp_2m`, `dpmpp_2m_sde`, `dpmpp_2m_karras`, `dpmpp_sde`, `ddim`, `uni_pc`
+**Available samplers:** 40+ algorithms from ComfyUI (see `bricks/comfy_constants.py`)
+- Recommended: `euler`, `euler_ancestral`, `heun`, `dpmpp_2m`, `dpmpp_2m_sde` (default), `dpmpp_3m_sde`, `ddim`, `uni_pc`, `lcm`
+- All categories: K-diffusion, DPM/DPM++, classic, advanced, resolution, experimental
+
+**Available schedulers:** 9 types (see `bricks/comfy_constants.py`)
+- Options: `normal`, `karras`, `exponential`, `sgm_uniform` (default), `simple`, `ddim_uniform`, `beta`, `linear_quadratic`, `kl_optimal`
+- Best for quality: `karras`, best for speed: `normal`
 
 **Using LoRA with Bricks:**
 

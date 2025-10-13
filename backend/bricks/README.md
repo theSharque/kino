@@ -224,9 +224,100 @@ When adding new bricks:
 
 ---
 
+## Available Samplers and Schedulers
+
+### Samplers (40+ algorithms)
+
+ComfyUI supports a wide range of sampling algorithms. For better UX, we categorize them:
+
+**📌 Recommended Samplers** (most commonly used):
+- `euler` - Simple and fast Euler method
+- `euler_ancestral` - Euler with ancestral sampling (adds variation)
+- `heun` - Heun's method (slower but higher quality)
+- `dpm_2` - 2nd order DPM
+- `dpm_2_ancestral` - DPM with ancestral sampling
+- `dpmpp_2m` - DPM++ 2M (fast, good quality)
+- `dpmpp_2m_sde` - DPM++ 2M SDE (high quality, **default**)
+- `dpmpp_2m_sde_gpu` - GPU-optimized version
+- `dpmpp_3m_sde` - DPM++ 3M SDE (even higher quality)
+- `dpmpp_sde` - DPM++ SDE variant
+- `ddim` - Classic DDIM sampler
+- `uni_pc` - UniPC sampler (good quality/speed balance)
+- `lcm` - Latent Consistency Model (very fast)
+
+**🔬 All Available Samplers** (full list in `comfy_constants.py`):
+
+*Basic K-diffusion:*
+`euler`, `euler_cfg_pp`, `euler_ancestral`, `euler_ancestral_cfg_pp`, `heun`, `heunpp2`
+
+*DPM Family:*
+`dpm_2`, `dpm_2_ancestral`, `dpm_fast`, `dpm_adaptive`
+
+*DPM++ Family:*
+`dpmpp_2s_ancestral`, `dpmpp_2s_ancestral_cfg_pp`, `dpmpp_sde`, `dpmpp_sde_gpu`, `dpmpp_2m`, `dpmpp_2m_cfg_pp`, `dpmpp_2m_sde`, `dpmpp_2m_sde_gpu`, `dpmpp_3m_sde`, `dpmpp_3m_sde_gpu`
+
+*Classic Samplers:*
+`lms`, `ddpm`, `ddim`
+
+*Advanced:*
+`ipndm`, `ipndm_v`, `deis`, `uni_pc`, `uni_pc_bh2`, `lcm`
+
+*Resolution Samplers:*
+`res_multistep`, `res_multistep_cfg_pp`, `res_multistep_ancestral`, `res_multistep_ancestral_cfg_pp`
+
+*Experimental:*
+`gradient_estimation`, `gradient_estimation_cfg_pp`, `er_sde`, `seeds_2`, `seeds_3`, `sa_solver`, `sa_solver_pece`
+
+### Schedulers (9 types)
+
+Schedulers control how noise is removed over the sampling steps:
+
+- `normal` - Standard linear noise schedule
+- `karras` - Karras schedule (popular for high quality, slower transitions)
+- `exponential` - Exponential noise schedule
+- `sgm_uniform` - SGM uniform schedule (**default**)
+- `simple` - Simple linear scheduler
+- `ddim_uniform` - DDIM uniform schedule (for DDIM sampler)
+- `beta` - Beta distribution schedule (Implemented from https://arxiv.org/abs/2407.12173)
+- `linear_quadratic` - Linear-quadratic (optimized for video models)
+- `kl_optimal` - KL-optimal schedule (from Automatic1111)
+
+### Sampler + Scheduler Combinations
+
+Some samplers work better with specific schedulers:
+
+- **euler** → `normal`, `karras`, `exponential`
+- **euler_ancestral** → `normal`, `karras`, `exponential`
+- **dpmpp_2m** → `karras`, `exponential`, `normal`
+- **dpmpp_2m_sde** → `karras`, `exponential`
+- **dpmpp_3m_sde** → `exponential`, `karras`
+- **ddim** → `ddim_uniform`, `normal`
+- **uni_pc** → `karras`, `normal`
+
+**General recommendations:**
+- For **quality**: Use `dpmpp_2m_sde` or `dpmpp_3m_sde` with `karras`
+- For **speed**: Use `euler` with `normal`
+- For **balance**: Use `dpmpp_2m` with `exponential`
+
+### Constants Module
+
+Import constants in your code:
+
+```python
+from bricks.comfy_constants import (
+    SAMPLER_NAMES,           # All 40+ samplers
+    SCHEDULER_NAMES,         # All 9 schedulers
+    RECOMMENDED_SAMPLERS,    # Curated list of ~13 best samplers
+    RECOMMENDED_SCHEDULERS   # Curated list of ~5 best schedulers
+)
+```
+
+---
+
 ## See Also
 
 - [Plugin System](../plugins/README.md) - How to create generator plugins
 - [SDXL Plugin](../plugins/sdxl/loader.py) - Example of using bricks
 - [ComfyUI Documentation](../comfy/README.md) - ComfyUI backend info
+- [Sampler Constants](./comfy_constants.py) - Full list of samplers and schedulers
 
