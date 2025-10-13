@@ -246,6 +246,49 @@ class GeneratorService:
 
         return stopped_count
 
+    async def clear_pending_tasks(self) -> int:
+        """
+        Clear all pending tasks from the queue
+        Returns number of cleared tasks
+        """
+        # Get all pending tasks
+        query = """
+            SELECT id FROM tasks
+            WHERE status = ?
+        """
+        rows = await self.db.fetch_all(query, (TaskStatus.PENDING.value,))
+        
+        pending_ids = [row['id'] for row in rows]
+        cleared_count = len(pending_ids)
+        
+        if cleared_count > 0:
+            # Update all pending tasks to stopped
+            update_query = """
+                UPDATE tasks
+                SET status = ?, updated_at = ?, completed_at = ?
+                WHERE status = ?
+            """
+            now = datetime.utcnow().isoformat()
+            await self.db.execute(
+                update_query,
+                (TaskStatus.STOPPED.value, now, now, TaskStatus.PENDING.value)
+            )
+        
+        return cleared_count
+
+    async def reset_all(self) -> Dict[str, int]:
+        """
+        Reset all tasks - stop running and clear pending
+        Returns dict with counts of stopped and cleared tasks
+        """
+        stopped_count = await self.stop_all_tasks()
+        cleared_count = await self.clear_pending_tasks()
+        
+        return {
+            'stopped': stopped_count,
+            'cleared': cleared_count
+        }
+
     def _row_to_task_response(self, row) -> TaskResponse:
         """Convert database row to TaskResponse"""
         return TaskResponse(
