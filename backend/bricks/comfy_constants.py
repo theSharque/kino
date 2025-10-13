@@ -2,7 +2,9 @@
 ComfyUI constants - Samplers and Schedulers
 
 These constants are extracted from ComfyUI's samplers.py
-Reference: comfy/samplers.py lines 730-734, 1054, 1063-1074
+Reference: ComfyUI/comfy/samplers.py lines 730-734, 1054, 1063-1074
+
+Note: This module uses the full ComfyUI installation from backend/ComfyUI/
 """
 
 # All available samplers in ComfyUI

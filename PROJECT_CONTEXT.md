@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-13 (Added full ComfyUI samplers/schedulers support - 40+ samplers, 9 schedulers)
+**Last Updated:** 2025-10-13 (Migrated to full ComfyUI installation with sys.path integration)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -113,13 +113,20 @@ backend/
 │   ├── generation_params.py # Generation parameters storage (save/load JSON metadata)
 │   ├── README.md       # Bricks documentation and usage examples
 │   └── README_PARAMS.md # Generation parameters documentation
-├── comfy/               # ComfyUI backend integration (full ComfyUI codebase)
-│   ├── sd.py           # Stable Diffusion implementations
-│   ├── model_management.py # Model loading and memory management
-│   ├── sample.py       # Sampling algorithms
-│   ├── ldm/            # Latent Diffusion Models
-│   ├── text_encoders/  # CLIP, T5, and other text encoders
-│   └── [extensive ComfyUI codebase]
+├── ComfyUI/             # Full ComfyUI installation (complete framework)
+│   ├── comfy/          # Core ComfyUI library
+│   │   ├── sd.py       # Stable Diffusion implementations
+│   │   ├── sample.py   # Sampling algorithms
+│   │   ├── samplers.py # All 40+ samplers and 9 schedulers
+│   │   ├── model_management.py # Model loading and memory
+│   │   ├── ldm/        # Latent Diffusion Models
+│   │   └── text_encoders/ # CLIP, T5, and other encoders
+│   ├── comfy_api/      # ComfyUI API modules
+│   ├── comfy_extras/   # Extra nodes and features
+│   ├── custom_nodes/   # Custom node system
+│   ├── models/         # Model storage (symlinked to ../models_storage/)
+│   └── [full ComfyUI codebase - server, execution, etc.]
+├── COMFYUI_INTEGRATION.md # ComfyUI integration guide for Kino
 ├── data/                # Data storage (gitignored content)
 │   ├── frames/         # Generated frame files (.png)
 │   ├── projects/       # Project-specific data (organized by project name)
@@ -852,6 +859,12 @@ npm run dev
 - [x] SDXL plugin: Scheduler parameter added
 - [x] SDXL plugin: Recommended samplers list for better UX
 - [x] Documentation: Sampler and scheduler combinations guide
+- [x] Backend: Migrated to full ComfyUI installation (backend/ComfyUI/)
+- [x] Bricks: sys.path integration for ComfyUI imports
+- [x] Bricks: Updated imports from old comfy/ to new ComfyUI/comfy/
+- [x] Requirements: Added all ComfyUI dependencies
+- [x] Testing: ComfyUI integration test script
+- [x] Documentation: ComfyUI/INTEGRATION.md guide
 
 ### 🔄 In Progress
 - [ ] Frontend: Implement virtual scrolling with react-window
@@ -926,12 +939,15 @@ npm run dev
    - Easy to swap or update ComfyUI backend without changing plugins
 
 9. **ComfyUI Backend Integration**
-   - Full ComfyUI codebase integrated in `comfy/` directory
-   - Not tracked in git (too large), but structure preserved
+   - Full ComfyUI framework in `ComfyUI/` directory
+   - Complete installation with all features (server, API, custom nodes)
+   - sys.path integration via bricks layer for clean imports
    - Provides powerful model loading, sampling, and encoding capabilities
-   - Supports multiple model architectures (SD, SDXL, Flux, etc.)
-   - Extensive sampler selection (euler, dpmpp, etc.)
+   - Supports multiple model architectures (SD, SDXL, Flux, Aura, etc.)
+   - 40+ sampling algorithms and 9 noise schedulers
    - Memory-efficient model management
+   - Can use ComfyUI updates and custom nodes
+   - Integration documented in `ComfyUI/INTEGRATION.md`
 
 10. **Configuration Management**
     - Centralized `config.py` for all paths
