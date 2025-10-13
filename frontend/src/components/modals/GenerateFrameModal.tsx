@@ -89,14 +89,14 @@ export const GenerateFrameModal = ({
 
     // Initialize with defaults or initialParams
     const initParams: Record<string, any> = {};
-    
+
     Object.entries(plugin.parameters).forEach(([paramName, param]) => {
       const defaultValue = getDefaultValue(paramName, param);
       if (defaultValue !== undefined && defaultValue !== null) {
         initParams[paramName] = defaultValue;
       }
     });
-    
+
     setParameters(initParams);
     setErrors({});
   }, [isOpen, plugin, initialParams, projectWidth, projectHeight]);
