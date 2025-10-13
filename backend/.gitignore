@@ -64,9 +64,12 @@ models_storage/ClipVision/*
 models_storage/VAE/*
 !models_storage/VAE/.gitkeep
 
-# ComfyUI files (keep directory structure)
+# Old ComfyUI files (deprecated - moved to ComfyUI/)
 comfy/*
 !comfy/.gitkeep
+
+# Full ComfyUI installation (git submodule - don't track files)
+# Integration guide is at backend/COMFYUI_INTEGRATION.md
 
 # Jupyter Notebook
 .ipynb_checkpoints

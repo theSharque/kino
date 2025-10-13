@@ -1,13 +1,21 @@
 import random
+import sys
+from pathlib import Path
 
 import torch
 
-from comfy.sample import fix_empty_latent_channels
-from comfy.sample import prepare_noise
-from comfy.sample import sample
-from comfy.sd import load_checkpoint_guess_config
-from comfy.sd import load_lora_for_models
-from comfy.utils import load_torch_file
+# Add ComfyUI to Python path so internal imports work
+comfyui_path = Path(__file__).parent.parent / "ComfyUI"
+if str(comfyui_path) not in sys.path:
+    sys.path.insert(0, str(comfyui_path))
+
+# Imports from ComfyUI (via sys.path, linter may show warnings - ignore them)
+from comfy.sample import fix_empty_latent_channels  # type: ignore
+from comfy.sample import prepare_noise  # type: ignore
+from comfy.sample import sample  # type: ignore
+from comfy.sd import load_checkpoint_guess_config  # type: ignore
+from comfy.sd import load_lora_for_models  # type: ignore
+from comfy.utils import load_torch_file  # type: ignore
 
 
 def load_checkpoint_plugin(ckpt_path):
