@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import type { Frame } from "../api/client";
+import { getFrameImageUrl } from "../config/constants";
 import "./Timeline.css";
 
 interface TimelineProps {
@@ -11,13 +12,7 @@ interface TimelineProps {
 
 // Helper to get frame thumbnail URL
 const getFrameThumbnailUrl = (frame: Frame): string | undefined => {
-  // TODO: Backend should provide thumbnail URL or serve images via API
-  // For now, construct URL from frame path
-  if (frame.path) {
-    const filename = frame.path.split("/").pop();
-    return `http://localhost:8000/data/frames/${filename}`;
-  }
-  return undefined;
+  return frame.path ? getFrameImageUrl(frame.path) : undefined;
 };
 
 export const Timeline = ({

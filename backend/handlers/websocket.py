@@ -68,6 +68,7 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
                         'gpu_percent': metrics['gpu_percent'],
                         'gpu_memory_percent': metrics['gpu_memory_percent'],
                         'gpu_available': metrics['gpu_available'],
+                        'gpu_type': metrics['gpu_type'],
                         'queue_size': queue_size,
                         'current_task': {
                             'id': current_task.id if current_task else None,

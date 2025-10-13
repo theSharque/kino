@@ -10,6 +10,8 @@ interface GenerateFrameModalProps {
   onClose: () => void;
   plugin: PluginInfo | null;
   projectId: number | null;
+  projectWidth?: number;
+  projectHeight?: number;
   onGenerate: (pluginName: string, parameters: Record<string, any>) => void;
 }
 
@@ -18,6 +20,8 @@ export const GenerateFrameModal = ({
   onClose,
   plugin,
   projectId,
+  projectWidth,
+  projectHeight,
   onGenerate,
 }: GenerateFrameModalProps) => {
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -28,6 +32,20 @@ export const GenerateFrameModal = ({
   const [loadingModels, setLoadingModels] = useState<Record<string, boolean>>(
     {}
   );
+
+  // Get default value for a parameter (with project overrides for width/height)
+  const getDefaultValue = (paramName: string, param: any): any => {
+    // Override width with project width if available
+    if (paramName === "width" && projectWidth) {
+      return projectWidth;
+    }
+    // Override height with project height if available
+    if (paramName === "height" && projectHeight) {
+      return projectHeight;
+    }
+    // Otherwise use plugin default
+    return param.default;
+  };
 
   // Load models for model_selection type parameters
   useEffect(() => {
@@ -128,8 +146,9 @@ export const GenerateFrameModal = ({
     // Add defaults for missing optional parameters
     Object.entries(plugin.parameters).forEach(([paramName, param]) => {
       if (!param.required && finalParameters[paramName] === undefined) {
-        if (param.default !== undefined) {
-          finalParameters[paramName] = param.default;
+        const defaultValue = getDefaultValue(paramName, param);
+        if (defaultValue !== undefined) {
+          finalParameters[paramName] = defaultValue;
         }
       }
       // Convert to proper types
@@ -208,7 +227,9 @@ export const GenerateFrameModal = ({
                         onChange={(e) =>
                           handleInputChange("width", e.target.value)
                         }
-                        placeholder={param.default?.toString() || ""}
+                        placeholder={
+                          getDefaultValue("width", param)?.toString() || ""
+                        }
                         min={param.min}
                         max={param.max}
                       />
@@ -216,11 +237,13 @@ export const GenerateFrameModal = ({
                         <span className="field-description">
                           {param.description}
                         </span>
-                        {param.default !== undefined && (
-                          <span className="field-default">
-                            Default: {param.default}
-                          </span>
-                        )}
+                        {getDefaultValue("width", param) !== undefined &&
+                          getDefaultValue("width", param) !== null && (
+                            <span className="field-default">
+                              Default: {getDefaultValue("width", param)}
+                              {projectWidth && " (from project)"}
+                            </span>
+                          )}
                       </div>
                     </div>
 
@@ -240,7 +263,10 @@ export const GenerateFrameModal = ({
                         onChange={(e) =>
                           handleInputChange("height", e.target.value)
                         }
-                        placeholder={heightInfo.default?.toString() || ""}
+                        placeholder={
+                          getDefaultValue("height", heightInfo)?.toString() ||
+                          ""
+                        }
                         min={heightInfo.min}
                         max={heightInfo.max}
                       />
@@ -248,11 +274,13 @@ export const GenerateFrameModal = ({
                         <span className="field-description">
                           {heightInfo.description}
                         </span>
-                        {heightInfo.default !== undefined && (
-                          <span className="field-default">
-                            Default: {heightInfo.default}
-                          </span>
-                        )}
+                        {getDefaultValue("height", heightInfo) !== undefined &&
+                          getDefaultValue("height", heightInfo) !== null && (
+                            <span className="field-default">
+                              Default: {getDefaultValue("height", heightInfo)}
+                              {projectHeight && " (from project)"}
+                            </span>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -385,11 +413,13 @@ export const GenerateFrameModal = ({
                       {errors[paramName] && (
                         <span className="field-error">{errors[paramName]}</span>
                       )}
-                      {param.default !== undefined && !param.required && (
-                        <span className="field-default">
-                          Default: {param.default.toString()}
-                        </span>
-                      )}
+                      {param.default !== undefined &&
+                        param.default !== null &&
+                        !param.required && (
+                          <span className="field-default">
+                            Default: {param.default.toString()}
+                          </span>
+                        )}
                     </div>
                   )}
                 </div>

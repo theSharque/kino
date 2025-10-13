@@ -2,7 +2,7 @@
  * API Client for Kino Backend
  */
 
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from "../config/constants";
 
 // Types matching backend models
 export interface Project {
@@ -361,9 +361,6 @@ export const systemAPI = {
 
 /**
  * Get frame image URL
+ * @deprecated Use getFrameImageUrl from config/constants.ts instead
  */
-export const getFrameImageUrl = (framePath: string): string => {
-  // Frame path is absolute, so we need to construct URL differently
-  // TODO: Backend should serve frames via API endpoint
-  return `${API_BASE_URL}/data/frames/${framePath.split("/").pop()}`;
-};
+export { getFrameImageUrl } from "../config/constants";
