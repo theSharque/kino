@@ -187,11 +187,9 @@ export const MenuBar = ({
       <div className="right-section">
         {systemMetrics && (
           <span className="metrics">
-            {systemMetrics.queue_size > 0 && (
-              <span className="metric-item">
-                Queue: {systemMetrics.queue_size}
-              </span>
-            )}
+            <span className="metric-item">
+              Queue: {systemMetrics.pending_count}+{systemMetrics.running_count}
+            </span>
             {systemMetrics.current_task && (
               <span className="metric-item">
                 Current: {Math.round(systemMetrics.current_task.progress)}%

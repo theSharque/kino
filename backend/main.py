@@ -8,9 +8,10 @@ from dotenv import load_dotenv
 import os
 
 from routes import setup_routes
-from database import init_db, close_db, get_db
+from database import init_db, close_db, get_db, Database
 from services.generator_service import GeneratorService
 from handlers import websocket
+from datetime import datetime
 
 
 @web.middleware
@@ -32,6 +33,35 @@ async def cors_middleware(request, handler):
     return response
 
 
+async def cleanup_stuck_tasks(db: Database):
+    """Clean up any running tasks that were left from previous sessions"""
+    try:
+        # Find all tasks with 'running' status
+        query = "SELECT id, name FROM tasks WHERE status = 'running'"
+        rows = await db.fetch_all(query)
+
+        if rows:
+            print(f"Found {len(rows)} stuck running tasks, cleaning up...")
+            current_time = datetime.now().isoformat()
+
+            # Update all running tasks to stopped status
+            for row in rows:
+                task_id, task_name = row
+                await db.execute(
+                    "UPDATE tasks SET status = 'stopped', progress = 0.0, updated_at = ?, error = ? WHERE id = ?",
+                    (current_time, "Task stopped due to server restart", task_id)
+                )
+                print(f"  - Stopped task ID {task_id}: {task_name}")
+
+            await db.commit()
+            print("Stuck tasks cleanup completed")
+        else:
+            print("No stuck running tasks found")
+
+    except Exception as e:
+        print(f"Error during stuck tasks cleanup: {e}")
+
+
 async def on_startup(app: web.Application):
     """Called on application startup"""
     db_path = os.getenv('DB_PATH', './data/kino.db')
@@ -42,6 +72,9 @@ async def on_startup(app: web.Application):
     db = get_db()
     app['generator_service'] = GeneratorService(db)
     print("Generator service initialized")
+
+    # Clean up any stuck running tasks from previous sessions
+    await cleanup_stuck_tasks(db)
 
 
 async def on_cleanup(app: web.Application):

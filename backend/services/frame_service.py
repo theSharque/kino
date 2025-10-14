@@ -149,12 +149,33 @@ class FrameService:
         return await self.get_frame_by_id(frame_id)
 
     async def delete_frame(self, frame_id: int) -> bool:
-        """Delete a frame"""
+        """Delete a frame and its associated files"""
         # Check if frame exists
         existing = await self.get_frame_by_id(frame_id)
         if not existing:
             return False
 
+        # Delete physical files
+        try:
+            import os
+            from pathlib import Path
+
+            # Delete main image file
+            if existing.path and os.path.exists(existing.path):
+                os.remove(existing.path)
+                print(f"Deleted image file: {existing.path}")
+
+            # Delete associated JSON file (generation parameters)
+            json_path = existing.path.replace('.png', '.json')
+            if os.path.exists(json_path):
+                os.remove(json_path)
+                print(f"Deleted parameters file: {json_path}")
+
+        except Exception as e:
+            print(f"Warning: Failed to delete files for frame {frame_id}: {e}")
+            # Continue with database deletion even if file deletion fails
+
+        # Delete from database
         query = "DELETE FROM frames WHERE id = ?"
         await self.db.execute(query, (frame_id,))
 

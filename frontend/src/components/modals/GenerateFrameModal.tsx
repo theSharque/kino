@@ -39,6 +39,7 @@ export const GenerateFrameModal = ({
   const getDefaultValue = (paramName: string, param: any): any => {
     // First priority: initial params (from regenerate)
     if (initialParams && paramName in initialParams) {
+      console.log(`Using initial param for ${paramName}:`, initialParams[paramName]);
       return initialParams[paramName];
     }
     // Second priority: project dimensions for width/height
@@ -69,6 +70,14 @@ export const GenerateFrameModal = ({
           try {
             const models = await modelsAPI.getByCategory(category);
             setModelsByCategory((prev) => ({ ...prev, [category]: models }));
+
+            // Auto-select first model for required model_selection parameters
+            if (param.required && models.length > 0 && !parameters[paramName]) {
+              setParameters((prev) => ({
+                ...prev,
+                [paramName]: models[0].filename
+              }));
+            }
           } catch (err) {
             console.error(`Failed to load models for ${category}:`, err);
           } finally {
@@ -86,6 +95,8 @@ export const GenerateFrameModal = ({
     if (!isOpen || !plugin) {
       return;
     }
+
+    console.log("GenerateFrameModal opened with initialParams:", initialParams);
 
     // Initialize with defaults or initialParams
     const initParams: Record<string, any> = {};

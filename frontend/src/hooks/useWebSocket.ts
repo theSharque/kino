@@ -11,7 +11,8 @@ export interface SystemMetrics {
   gpu_memory_percent: number;
   gpu_available: boolean;
   gpu_type: string; // 'xpu' (Intel Arc), 'cuda' (NVIDIA), or 'none'
-  queue_size: number;
+  pending_count: number;
+  running_count: number;
   current_task: {
     id: number;
     name: string;
