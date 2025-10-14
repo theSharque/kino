@@ -136,7 +136,7 @@
         "request": "launch",
         "command": "cd ${workspaceFolder:Backend (Python)} && ./run.sh",
         "presentation": {
-          "hidden": true,
+          "hidden": false,
           "reveal": "always",
           "panel": "dedicated",
           "showReuseMessage": false,
@@ -149,7 +149,7 @@
         "request": "launch",
         "command": "cd ${workspaceFolder:Frontend (React)} && bash -c 'source ~/.nvm/nvm.sh && nvm use --lts && npm run dev'",
         "presentation": {
-          "hidden": true,
+          "hidden": false,
           "reveal": "always",
           "panel": "dedicated",
           "showReuseMessage": false,

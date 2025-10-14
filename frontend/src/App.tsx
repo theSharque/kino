@@ -257,7 +257,10 @@ function App() {
 
         // Set plugin and params
         setSelectedPlugin(plugin);
-        setRegenerateParams(params);
+        // Extract parameters from the API response structure
+        const extractedParams = params.parameters || params;
+        console.log("Regenerate params loaded:", extractedParams);
+        setRegenerateParams(extractedParams);
         setIsGenerateFrameModalOpen(true);
       } catch (error) {
         console.error("Failed to load generation params:", error);

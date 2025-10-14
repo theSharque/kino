@@ -174,6 +174,10 @@ class GeneratorService:
                     progress=100.0,
                     result=result.data
                 )
+
+                # Create frame record if generation was successful
+                if result.data and 'output_path' in result.data:
+                    await self._create_frame_record(task_id, data, result.data)
             else:
                 await self.update_task_status(
                     task_id,
@@ -192,6 +196,40 @@ class GeneratorService:
             # Clean up
             if task_id in self.running_tasks:
                 del self.running_tasks[task_id]
+
+    async def _create_frame_record(self, task_id: int, task_data: Dict[str, Any], result_data: Dict[str, Any]):
+        """Create frame record in database after successful generation"""
+        try:
+            # Get project_id from task data
+            project_id = task_data.get('project_id')
+            if not project_id:
+                print(f"Warning: No project_id found in task {task_id} data, skipping frame creation")
+                return
+
+            # Get generator name from task
+            task = await self.get_task_by_id(task_id)
+            if not task:
+                print(f"Warning: Task {task_id} not found, skipping frame creation")
+                return
+
+            # Create frame record
+            from models.frame import FrameCreate
+            from services.frame_service import FrameService
+
+            frame_create = FrameCreate(
+                path=result_data['output_path'],
+                generator=task.type,
+                project_id=project_id
+            )
+
+            frame_service = FrameService(self.db)
+            frame = await frame_service.create_frame(frame_create)
+
+            print(f"Created frame record: ID {frame.id} for task {task_id}")
+
+        except Exception as e:
+            print(f"Error creating frame record for task {task_id}: {e}")
+            # Don't fail the task if frame creation fails
 
     async def stop_generation(self, task_id: int) -> bool:
         """Stop a running task"""

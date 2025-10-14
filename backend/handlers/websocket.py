@@ -44,14 +44,16 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
                 metrics = system_monitor.get_metrics()
 
                 # Get task queue info
-                queue_size = 0
+                pending_count = 0
+                running_count = 0
                 current_task = None
                 current_progress = 0.0
 
                 if generator_service:
-                    # Count pending tasks
+                    # Count pending and running tasks separately
                     all_tasks = await generator_service.get_all_tasks()
-                    queue_size = sum(1 for t in all_tasks if t.status.value == 'pending')
+                    pending_count = sum(1 for t in all_tasks if t.status.value == 'pending')
+                    running_count = sum(1 for t in all_tasks if t.status.value == 'running')
 
                     # Find running task
                     running_tasks = [t for t in all_tasks if t.status.value == 'running']
@@ -69,7 +71,8 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
                         'gpu_memory_percent': metrics['gpu_memory_percent'],
                         'gpu_available': metrics['gpu_available'],
                         'gpu_type': metrics['gpu_type'],
-                        'queue_size': queue_size,
+                        'pending_count': pending_count,
+                        'running_count': running_count,
                         'current_task': {
                             'id': current_task.id if current_task else None,
                             'name': current_task.name if current_task else None,
