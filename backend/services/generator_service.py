@@ -204,6 +204,17 @@ class GeneratorService:
     async def _create_frame_record(self, task_id: int, task_data: Dict[str, Any], result_data: Dict[str, Any]):
         """Create frame record in database after successful generation"""
         try:
+            # Check if frame was already created by plugin (e.g., for preview support)
+            if 'frame_id' in result_data and result_data['frame_id']:
+                frame_id = result_data['frame_id']
+                print(f"Frame {frame_id} already created by plugin for task {task_id}, skipping duplicate")
+
+                # Return the existing frame
+                from services.frame_service import FrameService
+                frame_service = FrameService(self.db)
+                frame = await frame_service.get_frame_by_id(frame_id)
+                return frame
+
             # Get project_id from task data
             project_id = task_data.get('project_id')
             if not project_id:

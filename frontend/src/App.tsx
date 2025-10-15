@@ -22,45 +22,93 @@ function App() {
   // Frames state
   const [frames, setFrames] = useState<Frame[]>([]);
 
-  // Handle frame update events from WebSocket
-  const handleFrameUpdate = useCallback(
+  // Image keys for forcing reload (timestamp-based cache busting)
+  const [imageKeys, setImageKeys] = useState<Map<number, number>>(new Map());
+
+  // Track frames currently being generated (for auto-refresh)
+  const [generatingFrames, setGeneratingFrames] = useState<Set<number>>(
+    new Set()
+  );
+  const previewIntervalRef = useRef<number | null>(null);
+
+  // Force reload image for a specific frame
+  const forceReloadFrame = useCallback((frameId: number) => {
+    setImageKeys((prev) => {
+      const newKeys = new Map(prev);
+      newKeys.set(frameId, Date.now());
+      return newKeys;
+    });
+  }, []);
+
+  // Handle WebSocket messages
+  const handleWebSocketMessage = useCallback(
     async (event: any) => {
-      console.log("Handling frame update:", event);
+      if (!currentProject) return;
 
-      // Only update if the frame belongs to the current project
-      if (currentProject && event.project_id === currentProject.id) {
+      // Handle different event types
+      if (
+        event.type === "generation_started" &&
+        event.data.project_id === currentProject.id
+      ) {
+        console.log("🎬 Generation started:", event.data);
+
         try {
-          // Fetch the updated frame data
-          const updatedFrame = await framesAPI.getFrame(event.frame_id);
+          const frame = await framesAPI.getFrame(event.data.frame_id);
+          setFrames((prev) => {
+            const exists = prev.some((f) => f.id === event.data.frame_id);
+            if (exists) return prev;
+            return [...prev, frame].sort((a, b) => a.id - b.id);
+          });
 
+          setGeneratingFrames((prev) => new Set(prev).add(event.data.frame_id));
+        } catch (error) {
+          console.error("Failed to fetch frame:", error);
+        }
+      } else if (
+        event.type === "generation_completed" &&
+        event.data.project_id === currentProject.id
+      ) {
+        console.log("✅ Generation completed:", event.data);
+
+        setGeneratingFrames((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(event.data.frame_id);
+          return newSet;
+        });
+
+        forceReloadFrame(event.data.frame_id);
+      } else if (
+        event.type === "frame_update" &&
+        event.project_id === currentProject.id
+      ) {
+        // Legacy support
+        console.log("📸 Frame updated (legacy):", event);
+
+        try {
+          const updatedFrame = await framesAPI.getFrame(event.frame_id);
           setFrames((prevFrames) => {
-            // Check if frame already exists
             const existingIndex = prevFrames.findIndex(
               (f) => f.id === event.frame_id
             );
-
             if (existingIndex >= 0) {
-              // Update existing frame
               const newFrames = [...prevFrames];
               newFrames[existingIndex] = updatedFrame;
-              console.log("Updated existing frame:", event.frame_id);
               return newFrames;
             } else {
-              // Add new frame
-              console.log("Added new frame:", event.frame_id);
               return [...prevFrames, updatedFrame];
             }
           });
+          forceReloadFrame(event.frame_id);
         } catch (error) {
           console.error("Failed to fetch updated frame:", error);
         }
       }
     },
-    [currentProject]
+    [currentProject, forceReloadFrame]
   );
 
   // WebSocket for real-time updates
-  const { metrics, isConnected } = useWebSocket(handleFrameUpdate);
+  const { metrics, isConnected } = useWebSocket(handleWebSocketMessage);
 
   const [loadingFrames, setLoadingFrames] = useState(false);
 
@@ -142,6 +190,34 @@ function App() {
       };
     }
   }, [isPlaying, fps, frames.length]);
+
+  // Auto-refresh preview images during generation (every 1 second)
+  useEffect(() => {
+    if (generatingFrames.size === 0) {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+      return;
+    }
+
+    console.log(
+      `Starting auto-refresh for ${generatingFrames.size} generating frames`
+    );
+
+    previewIntervalRef.current = window.setInterval(() => {
+      generatingFrames.forEach((frameId) => {
+        forceReloadFrame(frameId);
+      });
+    }, 1000); // Refresh every second
+
+    return () => {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+    };
+  }, [generatingFrames, forceReloadFrame]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -420,9 +496,14 @@ function App() {
     }
   }, [currentProject]);
 
-  // Get current frame URL
+  // Get current frame URL with cache-busting timestamp
   const currentFrameUrl = frames[currentFrameIndex]
-    ? getFrameImageUrl(frames[currentFrameIndex].path)
+    ? (() => {
+        const baseUrl = getFrameImageUrl(frames[currentFrameIndex].path);
+        const frameId = frames[currentFrameIndex].id;
+        const timestamp = imageKeys.get(frameId);
+        return timestamp ? `${baseUrl}?t=${timestamp}` : baseUrl;
+      })()
     : undefined;
 
   return (
@@ -463,6 +544,7 @@ function App() {
           onAddFrame={handleAddFrame}
           onRegenerateFrame={handleRegenerateFrame}
           onDeleteFrame={handleDeleteFrameFromTimeline}
+          imageKeys={imageKeys}
         />
       </div>
 

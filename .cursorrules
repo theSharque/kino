@@ -1,5 +1,17 @@
 # Kino Project - AI Assistant Rules
 
+## 🔴 FIRST ACTION: Read PROJECT_CONTEXT.md
+
+**AT THE START OF EVERY CHAT SESSION, IMMEDIATELY READ:**
+- `/qs/kino/PROJECT_CONTEXT.md` - Contains complete project structure, tech stack, conventions, and how to run everything
+
+This file tells you:
+- How to start backend and frontend servers
+- Current GPU setup (XPU, not CUDA)
+- API endpoints and data models
+- Code conventions and patterns
+- Complete architecture overview
+
 ## Primary Rule: Always Use PROJECT_CONTEXT.md
 
 **CRITICAL:** Before generating any code, making architectural decisions, or implementing features, you MUST:
