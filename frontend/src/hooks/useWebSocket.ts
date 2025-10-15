@@ -25,11 +25,23 @@ interface WebSocketMessage {
   data?: any;
 }
 
-export const useWebSocket = () => {
+export interface FrameUpdateEvent {
+  frame_id: number;
+  project_id: number;
+  path: string;
+  generator: string;
+  created_at: string;
+  updated_at: string;
+}
+
+type FrameUpdateCallback = (event: FrameUpdateEvent) => void;
+
+export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const frameUpdateCallbackRef = useRef<FrameUpdateCallback | undefined>(onFrameUpdate);
 
   const connect = useCallback(() => {
     // Clear any pending reconnect
@@ -57,6 +69,11 @@ export const useWebSocket = () => {
 
           if (message.type === "metrics" && message.data) {
             setMetrics(message.data);
+          } else if (message.type === "frame_updated" && message.data) {
+            console.log("📸 Frame updated:", message.data);
+            if (frameUpdateCallbackRef.current) {
+              frameUpdateCallbackRef.current(message.data);
+            }
           }
         } catch (err) {
           console.error("Failed to parse WebSocket message:", err);
@@ -110,6 +127,11 @@ export const useWebSocket = () => {
       wsRef.current.send(JSON.stringify(message));
     }
   }, []);
+
+  // Update callback ref when it changes
+  useEffect(() => {
+    frameUpdateCallbackRef.current = onFrameUpdate;
+  }, [onFrameUpdate]);
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {

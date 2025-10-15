@@ -177,7 +177,11 @@ class GeneratorService:
 
                 # Create frame record if generation was successful
                 if result.data and 'output_path' in result.data:
-                    await self._create_frame_record(task_id, data, result.data)
+                    frame = await self._create_frame_record(task_id, data, result.data)
+
+                    # Broadcast frame update event
+                    if frame:
+                        await self._broadcast_frame_update(frame)
             else:
                 await self.update_task_status(
                     task_id,
@@ -204,13 +208,13 @@ class GeneratorService:
             project_id = task_data.get('project_id')
             if not project_id:
                 print(f"Warning: No project_id found in task {task_id} data, skipping frame creation")
-                return
+                return None
 
             # Get generator name from task
             task = await self.get_task_by_id(task_id)
             if not task:
                 print(f"Warning: Task {task_id} not found, skipping frame creation")
-                return
+                return None
 
             # Create frame record
             from models.frame import FrameCreate
@@ -226,10 +230,35 @@ class GeneratorService:
             frame = await frame_service.create_frame(frame_create)
 
             print(f"Created frame record: ID {frame.id} for task {task_id}")
+            return frame
 
         except Exception as e:
             print(f"Error creating frame record for task {task_id}: {e}")
             # Don't fail the task if frame creation fails
+            return None
+
+    async def _broadcast_frame_update(self, frame):
+        """Broadcast frame update event to all WebSocket clients"""
+        try:
+            from handlers.websocket import broadcast_message
+
+            message = {
+                'type': 'frame_updated',
+                'data': {
+                    'frame_id': frame.id,
+                    'project_id': frame.project_id,
+                    'path': frame.path,
+                    'generator': frame.generator,
+                    'created_at': frame.created_at,
+                    'updated_at': frame.updated_at
+                }
+            }
+
+            await broadcast_message(message)
+            print(f"Broadcasted frame update event for frame {frame.id}")
+
+        except Exception as e:
+            print(f"Error broadcasting frame update: {e}")
 
     async def stop_generation(self, task_id: int) -> bool:
         """Stop a running task"""

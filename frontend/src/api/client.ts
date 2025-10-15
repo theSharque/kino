@@ -210,6 +210,13 @@ export const framesAPI = {
   },
 
   /**
+   * Get single frame by ID
+   */
+  getFrame: async (frameId: number): Promise<Frame> => {
+    return await fetchAPI<Frame>(`/api/v1/frames/${frameId}`);
+  },
+
+  /**
    * Delete frame
    */
   delete: (id: number) =>

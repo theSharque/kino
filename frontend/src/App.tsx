@@ -16,14 +16,52 @@ import { getFrameImageUrl, APP_NAME } from "./config/constants";
 import "./App.css";
 
 function App() {
-  // WebSocket for real-time updates
-  const { metrics, isConnected } = useWebSocket();
-
   // Current project state
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   // Frames state
   const [frames, setFrames] = useState<Frame[]>([]);
+
+  // Handle frame update events from WebSocket
+  const handleFrameUpdate = useCallback(
+    async (event: any) => {
+      console.log("Handling frame update:", event);
+
+      // Only update if the frame belongs to the current project
+      if (currentProject && event.project_id === currentProject.id) {
+        try {
+          // Fetch the updated frame data
+          const updatedFrame = await framesAPI.getFrame(event.frame_id);
+
+          setFrames((prevFrames) => {
+            // Check if frame already exists
+            const existingIndex = prevFrames.findIndex(
+              (f) => f.id === event.frame_id
+            );
+
+            if (existingIndex >= 0) {
+              // Update existing frame
+              const newFrames = [...prevFrames];
+              newFrames[existingIndex] = updatedFrame;
+              console.log("Updated existing frame:", event.frame_id);
+              return newFrames;
+            } else {
+              // Add new frame
+              console.log("Added new frame:", event.frame_id);
+              return [...prevFrames, updatedFrame];
+            }
+          });
+        } catch (error) {
+          console.error("Failed to fetch updated frame:", error);
+        }
+      }
+    },
+    [currentProject]
+  );
+
+  // WebSocket for real-time updates
+  const { metrics, isConnected } = useWebSocket(handleFrameUpdate);
+
   const [loadingFrames, setLoadingFrames] = useState(false);
 
   // Playback state
