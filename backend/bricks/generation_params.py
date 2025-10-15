@@ -7,30 +7,33 @@ from typing import Optional, Dict, Any
 
 
 def save_generation_params(
-    output_path: str,
-    plugin_name: str,
-    plugin_version: str,
-    task_id: int,
-    timestamp: str,
-    parameters: Dict[str, Any],
-    project_id: Optional[int] = None
+    output_path: str = None,
+    plugin_name: str = None,
+    plugin_version: str = None,
+    task_id: int = None,
+    timestamp: str = None,
+    parameters: Dict[str, Any] = None,
+    project_id: Optional[int] = None,
+    frame_id: Optional[int] = None
 ) -> str:
     """
     Save generation parameters to JSON file next to the generated image
 
     Args:
-        output_path: Path to the generated image file (.png)
+        output_path: Path to the generated image file (.png) (for new generation)
         plugin_name: Name of the generator plugin used
         plugin_version: Version of the plugin
-        task_id: Task ID that generated this frame
-        timestamp: Generation timestamp
+        task_id: Task ID that generated this frame (for new generation)
+        timestamp: Generation timestamp (for new generation)
         parameters: Dictionary of generation parameters
-        project_id: Optional project ID
+        project_id: Optional project ID (for new generation)
+        frame_id: Frame ID for regeneration (alternative to output_path)
 
     Returns:
         Path to the saved JSON file
 
     Example:
+        # New generation
         save_generation_params(
             output_path="/path/to/frame_001.png",
             plugin_name="sdxl",
@@ -46,9 +49,34 @@ def save_generation_params(
             project_id=1
         )
         # Creates: /path/to/frame_001.json
+
+        # Regeneration
+        save_generation_params(
+            frame_id=18,
+            plugin_name="sdxl",
+            plugin_version="1.0.0",
+            parameters={
+                'prompt': 'A beautiful landscape',
+                'width': 1024,
+                'height': 1024,
+                'steps': 32
+            }
+        )
+        # Updates existing frame's JSON file
     """
-    # Convert output path to Path object
-    img_path = Path(output_path)
+    if frame_id:
+        # Regeneration mode: get frame path from database
+        from database import get_db
+        db = get_db()
+        frame = db.get_frame_by_id(frame_id)
+        if not frame:
+            raise ValueError(f"Frame {frame_id} not found")
+        img_path = Path(frame.path)
+    else:
+        # New generation mode: use provided output_path
+        if not output_path:
+            raise ValueError("Either output_path or frame_id must be provided")
+        img_path = Path(output_path)
 
     # Create JSON path (same name, different extension)
     json_path = img_path.with_suffix('.json')
@@ -57,18 +85,24 @@ def save_generation_params(
     generation_data = {
         'plugin': plugin_name,
         'plugin_version': plugin_version,
-        'timestamp': timestamp,
-        'task_id': task_id,
         'parameters': parameters,
         'output': {
             'filename': img_path.name,
-            'path': str(output_path)
+            'path': str(img_path)
         }
     }
 
-    # Add project_id if provided
-    if project_id is not None:
-        generation_data['project_id'] = project_id
+    # Add optional fields based on mode
+    if frame_id:
+        # Regeneration mode
+        generation_data['frame_id'] = frame_id
+        generation_data['timestamp'] = timestamp or "regenerated"
+    else:
+        # New generation mode
+        generation_data['timestamp'] = timestamp
+        generation_data['task_id'] = task_id
+        if project_id is not None:
+            generation_data['project_id'] = project_id
 
     # Save to JSON file
     with open(json_path, 'w', encoding='utf-8') as f:

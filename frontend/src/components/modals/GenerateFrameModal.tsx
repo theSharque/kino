@@ -13,6 +13,7 @@ interface GenerateFrameModalProps {
   projectWidth?: number;
   projectHeight?: number;
   initialParams?: Record<string, any> | null;
+  regenerateFrameId?: number | null;
   onGenerate: (pluginName: string, parameters: Record<string, any>) => void;
 }
 
@@ -24,6 +25,7 @@ export const GenerateFrameModal = ({
   projectWidth,
   projectHeight,
   initialParams,
+  regenerateFrameId,
   onGenerate,
 }: GenerateFrameModalProps) => {
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -39,7 +41,10 @@ export const GenerateFrameModal = ({
   const getDefaultValue = (paramName: string, param: any): any => {
     // First priority: initial params (from regenerate)
     if (initialParams && paramName in initialParams) {
-      console.log(`Using initial param for ${paramName}:`, initialParams[paramName]);
+      console.log(
+        `Using initial param for ${paramName}:`,
+        initialParams[paramName]
+      );
       return initialParams[paramName];
     }
     // Second priority: project dimensions for width/height
@@ -75,7 +80,7 @@ export const GenerateFrameModal = ({
             if (param.required && models.length > 0 && !parameters[paramName]) {
               setParameters((prev) => ({
                 ...prev,
-                [paramName]: models[0].filename
+                [paramName]: models[0].filename,
               }));
             }
           } catch (err) {
@@ -97,12 +102,27 @@ export const GenerateFrameModal = ({
     }
 
     console.log("GenerateFrameModal opened with initialParams:", initialParams);
+    console.log("Regenerate frame ID:", regenerateFrameId);
 
     // Initialize with defaults or initialParams
     const initParams: Record<string, any> = {};
 
     Object.entries(plugin.parameters).forEach(([paramName, param]) => {
-      const defaultValue = getDefaultValue(paramName, param);
+      let defaultValue = getDefaultValue(paramName, param);
+
+      // For regeneration: automatically increment seed by +1
+      if (
+        regenerateFrameId &&
+        paramName === "seed" &&
+        defaultValue !== null &&
+        defaultValue !== undefined
+      ) {
+        defaultValue = defaultValue + 1;
+        console.log(
+          `Auto-incremented seed from ${defaultValue - 1} to ${defaultValue}`
+        );
+      }
+
       if (defaultValue !== undefined && defaultValue !== null) {
         initParams[paramName] = defaultValue;
       }
@@ -110,7 +130,14 @@ export const GenerateFrameModal = ({
 
     setParameters(initParams);
     setErrors({});
-  }, [isOpen, plugin, initialParams, projectWidth, projectHeight]);
+  }, [
+    isOpen,
+    plugin,
+    initialParams,
+    projectWidth,
+    projectHeight,
+    regenerateFrameId,
+  ]);
 
   const handleInputChange = (paramName: string, value: any) => {
     setParameters((prev) => ({
@@ -222,7 +249,11 @@ export const GenerateFrameModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title={`Generate with ${plugin.name.toUpperCase()}`}
+      title={
+        regenerateFrameId
+          ? `Regenerate Frame ${regenerateFrameId} with ${plugin.name.toUpperCase()}`
+          : `Generate with ${plugin.name.toUpperCase()}`
+      }
       size="large"
     >
       <form onSubmit={handleSubmit} className="generate-form">
@@ -473,7 +504,7 @@ export const GenerateFrameModal = ({
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            Generate
+            {regenerateFrameId ? "Regenerate" : "Generate"}
           </button>
         </div>
       </form>

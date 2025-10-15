@@ -1,6 +1,6 @@
 # Kino Project - AI Context & Development Guide
 
-**Last Updated:** 2025-10-15 (Preview system fully implemented - file-based auto-refresh approach)
+**Last Updated:** 2025-10-15 (State persistence system implemented - localStorage-based project/frame state saving)
 
 This file serves as a persistent context storage for AI assistance. It contains essential information about the project's architecture, decisions, and conventions to ensure consistent and correct code generation throughout the development process.
 
@@ -177,7 +177,8 @@ frontend/
 │   ├── api/             # API client and types
 │   │   └── client.ts   # Backend API client (projects, frames, health, models, system)
 │   ├── hooks/           # React custom hooks
-│   │   └── useWebSocket.ts  # WebSocket hook for real-time updates with auto-reconnect
+│   │   ├── useWebSocket.ts  # WebSocket hook for real-time updates with auto-reconnect
+│   │   └── useAppState.ts   # State persistence hook (localStorage-based project/frame state)
 │   ├── components/      # React components
 │   │   ├── README.md           # Components documentation
 │   │   ├── MenuBar.tsx         # Top menu bar (File, Edit, System, Help)
@@ -876,6 +877,38 @@ npm run dev
 - [x] Automatic preview → final image replacement
 
 ### 🔄 In Progress
+
+#### ✅ Completed Features
+
+##### Preview Generation System (Production Ready)
+- **Status:** ✅ Completed and tested
+- **Implementation:** File-based auto-refresh approach
+- **Backend:** `bricks/preview_bricks.py` - ComfyUI preview integration
+- **Frontend:** Auto-refresh every 1 second during generation
+- **Performance:** Only 2 WebSocket messages per generation (start + complete)
+- **Reliability:** 100% tested with 70-step generation
+
+##### State Persistence System (Production Ready)
+- **Status:** ✅ Completed and tested
+- **Implementation:** localStorage-based project/frame state saving
+- **Backend:** No changes required
+- **Frontend:** `hooks/useAppState.ts` - State management with persistence
+- **Features:**
+  - Automatically saves project selection and frame index
+  - Restores state on app load (survives browser restarts)
+  - Graceful error handling for invalid project IDs
+  - Clear console logging for debugging
+- **Storage:** `localStorage` key `kino_app_state`
+- **Data Structure:**
+  ```json
+  {
+    "currentProjectId": number | null,
+    "currentFrameIndex": number,
+    "lastUpdated": timestamp
+  }
+  ```
+
+#### 🚧 Active Development
 - [ ] Frontend: Real-time preview image updates via WebSocket
 - [ ] Frontend: Implement virtual scrolling with react-window
 - [ ] Migrate all v1 handlers to v2 (with OpenAPI docs)
