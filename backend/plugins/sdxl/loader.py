@@ -67,6 +67,11 @@ class SDXLPlugin(BasePlugin):
             self.should_stop = False
             self.progress = 0.0
 
+            # Check if this is a regeneration request
+            regenerate_frame_id = data.get('frame_id', None)
+            print(f"DEBUG: data = {data}")
+            print(f"DEBUG: regenerate_frame_id = {regenerate_frame_id}")
+
             # Extract and validate parameters
             prompt = data.get('prompt')
             model_name = data.get('model_name')
@@ -128,28 +133,59 @@ class SDXLPlugin(BasePlugin):
                         error=f"Failed to load checkpoint: {str(e)}"
                     )
 
-            # Create initial frame entry with preview path
+            # Handle frame creation or regeneration
             if project_id:
                 try:
-                    # Prepare preview path
-                    frames_dir = Path(Config.FRAMES_DIR)
-                    frames_dir.mkdir(parents=True, exist_ok=True)
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    preview_filename = f"task_{task_id}_{timestamp}_preview.png"
-                    self.preview_path = str(frames_dir / preview_filename)
+                    if regenerate_frame_id:
+                        # Regeneration mode: use existing frame
+                        existing_frame = await self.frame_service.get_frame_by_id(regenerate_frame_id)
+                        if not existing_frame:
+                            return PluginResult(
+                                success=False,
+                                data={},
+                                error=f"Frame {regenerate_frame_id} not found for regeneration"
+                            )
 
-                    # Create frame entry in database
-                    frame_create = FrameCreate(
-                        path=self.preview_path,
-                        generator='sdxl',
-                        project_id=project_id
-                    )
-                    created_frame = await self.frame_service.create_frame(frame_create)
-                    self.current_frame_id = created_frame.id
-                    print(f"Created frame {self.current_frame_id} for preview updates")
+                        # Delete old image file
+                        old_image_path = Path(existing_frame.path)
+                        if old_image_path.exists():
+                            try:
+                                old_image_path.unlink()
+                                print(f"Deleted old image: {old_image_path}")
+                            except Exception as e:
+                                print(f"Warning: Failed to delete old image {old_image_path}: {e}")
+
+                        # Update generation parameters JSON with new seed
+                        try:
+                            from bricks.generation_params import save_generation_params
+                            updated_params = {
+                                'prompt': prompt,
+                                'negative_prompt': negative_prompt,
+                                'width': width,
+                                'height': height,
+                                'steps': steps,
+                                'cfg_scale': cfg_scale,
+                                'model_name': model_name,
+                                'sampler': sampler,
+                                'scheduler': scheduler,
+                                'seed': seed,
+                                'loras': loras,
+                                'generator': 'sdxl'
+                            }
+                            save_generation_params(regenerate_frame_id, updated_params)
+                            print(f"Updated generation parameters for frame {regenerate_frame_id}")
+                        except Exception as e:
+                            print(f"Warning: Failed to update generation parameters: {e}")
+
+                        # Use existing frame's path for preview updates
+                        self.current_frame_id = regenerate_frame_id
+                        self.preview_path = existing_frame.path
+                        print(f"Regenerating frame {self.current_frame_id} at path: {self.preview_path}")
+
+                    # Note: Frame creation for new generation happens later, before KSampler
 
                 except Exception as e:
-                    print(f"Warning: Failed to create initial frame: {e}")
+                    print(f"Warning: Failed to handle frame: {e}")
                     # Continue without frame updates
 
             if self.should_stop:
@@ -216,15 +252,20 @@ class SDXLPlugin(BasePlugin):
             # Step 4: Create frame and initial preview image before sampling
             await self.update_progress(20.0, progress_callback)
 
-            # Create frame record and preview file path
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"task_{task_id}_{timestamp}.png"
-            preview_filename = f"task_{task_id}_{timestamp}_preview.png"
-            frames_dir = Path(Config.FRAMES_DIR)
-            frames_dir.mkdir(parents=True, exist_ok=True)
+            # Set up paths for generation
+            if not regenerate_frame_id:
+                # New generation: create new paths
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"task_{task_id}_{timestamp}.png"
+                preview_filename = f"task_{task_id}_{timestamp}_preview.png"
+                frames_dir = Path(Config.FRAMES_DIR)
+                frames_dir.mkdir(parents=True, exist_ok=True)
 
-            self.preview_path = str(frames_dir / preview_filename)
-            final_path = str(frames_dir / filename)
+                self.preview_path = str(frames_dir / preview_filename)
+                final_path = str(frames_dir / filename)
+            else:
+                # Regeneration: use existing frame's path
+                final_path = self.preview_path  # Same path for both preview and final
 
             # Create initial preview from latent (blank or noise pattern)
             try:
@@ -247,16 +288,17 @@ class SDXLPlugin(BasePlugin):
                 blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
                 blank_img.save(self.preview_path)
 
-            # Create frame record in database
-            from models.frame import FrameCreate
-            frame_create = FrameCreate(
-                path=self.preview_path,  # Initially point to preview
-                generator='sdxl',
-                project_id=project_id
-            )
-            frame_record = await self.frame_service.create_frame(frame_create)
-            self.current_frame_id = frame_record.id
-            print(f"Created frame record: ID {self.current_frame_id}")
+            # Create frame record in database (only if not regenerating)
+            if not regenerate_frame_id:
+                from models.frame import FrameCreate
+                frame_create = FrameCreate(
+                    path=self.preview_path,  # Initially point to preview
+                    generator='sdxl',
+                    project_id=project_id
+                )
+                frame_record = await self.frame_service.create_frame(frame_create)
+                self.current_frame_id = frame_record.id
+                print(f"Created frame record: ID {self.current_frame_id}")
 
             # Broadcast "generation started" message with preview path
             from handlers.websocket import broadcast_message
@@ -358,27 +400,49 @@ class SDXLPlugin(BasePlugin):
                 # Frame path is already correct in DB (points to this file)
 
                 # Save generation parameters to JSON file
-                save_generation_params(
-                    output_path=output_path_str,
-                    plugin_name='sdxl',
-                    plugin_version='1.0.0',
-                    task_id=task_id,
-                    timestamp=timestamp,
-                    parameters={
-                        'prompt': prompt,
-                        'negative_prompt': negative_prompt,
-                        'width': width,
-                        'height': height,
-                        'steps': steps,
-                        'cfg_scale': cfg_scale,
-                        'sampler': sampler,
-                        'scheduler': scheduler,
-                        'seed': used_seed,  # Save the actual seed that was used
-                        'model_name': model_name,
-                        'loras': loras
-                    },
-                    project_id=project_id
-                )
+                if regenerate_frame_id:
+                    # For regeneration: save with existing frame_id
+                    save_generation_params(
+                        frame_id=regenerate_frame_id,
+                        plugin_name='sdxl',
+                        plugin_version='1.0.0',
+                        parameters={
+                            'prompt': prompt,
+                            'negative_prompt': negative_prompt,
+                            'width': width,
+                            'height': height,
+                            'steps': steps,
+                            'cfg_scale': cfg_scale,
+                            'sampler': sampler,
+                            'scheduler': scheduler,
+                            'seed': used_seed,  # Save the actual seed that was used
+                            'model_name': model_name,
+                            'loras': loras
+                        }
+                    )
+                else:
+                    # For new generation: save with task_id
+                    save_generation_params(
+                        output_path=output_path_str,
+                        plugin_name='sdxl',
+                        plugin_version='1.0.0',
+                        task_id=task_id,
+                        timestamp=timestamp,
+                        parameters={
+                            'prompt': prompt,
+                            'negative_prompt': negative_prompt,
+                            'width': width,
+                            'height': height,
+                            'steps': steps,
+                            'cfg_scale': cfg_scale,
+                            'sampler': sampler,
+                            'scheduler': scheduler,
+                            'seed': used_seed,  # Save the actual seed that was used
+                            'model_name': model_name,
+                            'loras': loras
+                        },
+                        project_id=project_id
+                    )
 
             except Exception as e:
                 return PluginResult(

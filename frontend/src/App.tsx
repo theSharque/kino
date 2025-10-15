@@ -10,12 +10,20 @@ import { AboutModal } from "./components/modals/AboutModal";
 import { SelectGeneratorModal } from "./components/modals/SelectGeneratorModal";
 import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
 import type { Project, Frame, PluginInfo } from "./api/client";
-import { framesAPI, generatorAPI, systemAPI } from "./api/client";
+import { framesAPI, generatorAPI, systemAPI, projectsAPI } from "./api/client";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useAppState } from "./hooks/useAppState";
 import { getFrameImageUrl, APP_NAME } from "./config/constants";
 import "./App.css";
 
 function App() {
+  // App state management with persistence
+  const {
+    appState,
+    setCurrentProject: saveCurrentProject,
+    setCurrentFrameIndex: saveCurrentFrameIndex,
+  } = useAppState();
+
   // Current project state
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
@@ -113,7 +121,9 @@ function App() {
   const [loadingFrames, setLoadingFrames] = useState(false);
 
   // Playback state
-  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+  const [currentFrameIndex, setCurrentFrameIndex] = useState(
+    appState.currentFrameIndex
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
 
@@ -140,6 +150,9 @@ function App() {
     string,
     any
   > | null>(null);
+  const [regenerateFrameId, setRegenerateFrameId] = useState<number | null>(
+    null
+  );
 
   // Get FPS from project or use default
   const fps = currentProject?.fps || 24;
@@ -149,9 +162,10 @@ function App() {
     (index: number) => {
       if (index >= 0 && index < frames.length) {
         setCurrentFrameIndex(index);
+        saveCurrentFrameIndex(index);
       }
     },
-    [frames.length]
+    [frames.length, saveCurrentFrameIndex]
   );
 
   // Play/Pause toggle
@@ -160,11 +174,15 @@ function App() {
   }, []);
 
   // Handle frame selection from timeline
-  const handleFrameSelect = useCallback((index: number) => {
-    setCurrentFrameIndex(index);
-    // Pause playback when manually selecting a frame
-    setIsPlaying(false);
-  }, []);
+  const handleFrameSelect = useCallback(
+    (index: number) => {
+      setCurrentFrameIndex(index);
+      saveCurrentFrameIndex(index);
+      // Pause playback when manually selecting a frame
+      setIsPlaying(false);
+    },
+    [saveCurrentFrameIndex]
+  );
 
   // Playback effect - advance frames at FPS rate
   useEffect(() => {
@@ -264,37 +282,66 @@ function App() {
   }, [currentFrameIndex, handleFrameChange, handlePlayPause, frames.length]);
 
   // Load frames for current project
-  const loadProjectFrames = useCallback(async (projectId: number) => {
-    setLoadingFrames(true);
-    try {
-      const projectFrames = await framesAPI.getByProject(projectId);
-      setFrames(projectFrames);
-      setCurrentFrameIndex(0); // Reset to first frame
-    } catch (err) {
-      console.error("Failed to load frames:", err);
-      setFrames([]); // Clear frames on error
-    } finally {
-      setLoadingFrames(false);
-    }
-  }, []);
+  const loadProjectFrames = useCallback(
+    async (projectId: number) => {
+      setLoadingFrames(true);
+      try {
+        const projectFrames = await framesAPI.getByProject(projectId);
+        setFrames(projectFrames);
+
+        // Restore saved frame index if it's valid for this project
+        const savedIndex =
+          appState.currentProjectId === projectId
+            ? appState.currentFrameIndex
+            : 0;
+        const validIndex = Math.min(
+          savedIndex,
+          Math.max(0, projectFrames.length - 1)
+        );
+
+        setCurrentFrameIndex(validIndex);
+        if (appState.currentProjectId === projectId) {
+          saveCurrentFrameIndex(validIndex);
+        }
+      } catch (err) {
+        console.error("Failed to load frames:", err);
+        setFrames([]); // Clear frames on error
+        setCurrentFrameIndex(0);
+        saveCurrentFrameIndex(0);
+      } finally {
+        setLoadingFrames(false);
+      }
+    },
+    [
+      appState.currentProjectId,
+      appState.currentFrameIndex,
+      saveCurrentFrameIndex,
+    ]
+  );
 
   // Modal handlers
-  const handleNewProject = useCallback((project: Project) => {
-    setCurrentProject(project);
-    setFrames([]); // New project has no frames yet
-    setCurrentFrameIndex(0);
-    console.log("Project created:", project);
-  }, []);
+  const handleNewProject = useCallback(
+    (project: Project) => {
+      setCurrentProject(project);
+      saveCurrentProject(project);
+      setFrames([]); // New project has no frames yet
+      setCurrentFrameIndex(0);
+      saveCurrentFrameIndex(0);
+      console.log("Project created:", project);
+    },
+    [saveCurrentProject, saveCurrentFrameIndex]
+  );
 
   const handleOpenProject = useCallback(
     async (project: Project) => {
       setCurrentProject(project);
+      saveCurrentProject(project);
       console.log("Opening project:", project);
 
       // Load frames for the selected project
       await loadProjectFrames(project.id);
     },
-    [loadProjectFrames]
+    [loadProjectFrames, saveCurrentProject]
   );
 
   const handleFindFrame = useCallback(
@@ -375,6 +422,7 @@ function App() {
         const extractedParams = params.parameters || params;
         console.log("Regenerate params loaded:", extractedParams);
         setRegenerateParams(extractedParams);
+        setRegenerateFrameId(frameId); // Store frame ID for regeneration
         setIsGenerateFrameModalOpen(true);
       } catch (error) {
         console.error("Failed to load generation params:", error);
@@ -411,20 +459,34 @@ function App() {
         console.log("Creating generation task:", {
           pluginName,
           parameters,
+          regenerateFrameId,
         });
 
-        // Create task
-        const task = await generatorAPI.createTask({
-          name: `Generate frame for ${currentProject.name}`,
+        // Prepare task data
+        const taskData: any = {
+          name: regenerateFrameId
+            ? `Regenerate frame ${regenerateFrameId} for ${currentProject.name}`
+            : `Generate frame for ${currentProject.name}`,
           type: pluginName,
-          data: parameters,
-        });
+          data: {
+            ...parameters,
+            project_id: currentProject.id,
+            ...(regenerateFrameId && { frame_id: regenerateFrameId }),
+          },
+        };
+
+        // Create task
+        const task = await generatorAPI.createTask(taskData);
 
         console.log("Task created:", task);
 
         // Start generation
         await generatorAPI.startTask(task.id);
         console.log("Generation started for task:", task.id);
+
+        // Clear regeneration state
+        setRegenerateFrameId(null);
+        setRegenerateParams(null);
 
         // TODO: Implement progress tracking and frame reload
         // For now, just reload frames after a delay
@@ -440,7 +502,7 @@ function App() {
         );
       }
     },
-    [currentProject, loadProjectFrames]
+    [currentProject, loadProjectFrames, regenerateFrameId]
   );
 
   // Handle emergency stop
@@ -486,6 +548,38 @@ function App() {
       );
     }
   }, []);
+
+  // Restore project and frame state on app load
+  useEffect(() => {
+    const restoreState = async () => {
+      if (appState.currentProjectId && !currentProject) {
+        try {
+          console.log(
+            "🔄 Restoring project from saved state:",
+            appState.currentProjectId
+          );
+          const project = await projectsAPI.getById(appState.currentProjectId);
+          setCurrentProject(project);
+
+          // Load frames for the restored project
+          await loadProjectFrames(project.id);
+
+          console.log("✅ Project restored:", project.name);
+        } catch (error) {
+          console.error("Failed to restore project:", error);
+          // Clear invalid state
+          saveCurrentProject(null);
+        }
+      }
+    };
+
+    restoreState();
+  }, [
+    appState.currentProjectId,
+    currentProject,
+    loadProjectFrames,
+    saveCurrentProject,
+  ]);
 
   // Update document title when project changes
   useEffect(() => {
@@ -596,12 +690,14 @@ function App() {
         onClose={() => {
           setIsGenerateFrameModalOpen(false);
           setRegenerateParams(null);
+          setRegenerateFrameId(null);
         }}
         plugin={selectedPlugin}
         projectId={currentProject?.id || null}
         projectWidth={currentProject?.width}
         projectHeight={currentProject?.height}
         initialParams={regenerateParams}
+        regenerateFrameId={regenerateFrameId}
         onGenerate={handleGenerate}
       />
     </div>
