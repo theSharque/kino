@@ -11,11 +11,18 @@ interface TimelineProps {
   onAddFrame: () => void;
   onRegenerateFrame?: (frameId: number, frameIndex: number) => void;
   onDeleteFrame?: (frameId: number, frameIndex: number) => void;
+  imageKeys?: Map<number, number>; // Cache-busting timestamps for preview updates
 }
 
-// Helper to get frame thumbnail URL
-const getFrameThumbnailUrl = (frame: Frame): string | undefined => {
-  return frame.path ? getFrameImageUrl(frame.path) : undefined;
+// Helper to get frame thumbnail URL with optional cache-busting
+const getFrameThumbnailUrl = (
+  frame: Frame,
+  imageKeys?: Map<number, number>
+): string | undefined => {
+  if (!frame.path) return undefined;
+  const baseUrl = getFrameImageUrl(frame.path);
+  const timestamp = imageKeys?.get(frame.id);
+  return timestamp ? `${baseUrl}?t=${timestamp}` : baseUrl;
 };
 
 export const Timeline = ({
@@ -25,6 +32,7 @@ export const Timeline = ({
   onAddFrame,
   onRegenerateFrame,
   onDeleteFrame,
+  imageKeys,
 }: TimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const selectedFrameRef = useRef<HTMLDivElement>(null);
@@ -88,7 +96,7 @@ export const Timeline = ({
       <div className="timeline-scroll-container">
         {/* Render existing frames */}
         {frames.map((frame, index) => {
-          const thumbnailUrl = getFrameThumbnailUrl(frame);
+          const thumbnailUrl = getFrameThumbnailUrl(frame, imageKeys);
           return (
             <div
               key={frame.id}

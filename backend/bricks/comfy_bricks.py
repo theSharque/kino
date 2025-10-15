@@ -37,7 +37,30 @@ def generate_latent_image(width, height):
 
 
 def common_ksampler(model, latent, positive, negative, steps, cfg, sampler_name='dpmpp_2m_sde', scheduler='sgm_uniform',
-                    denoise=1.0, disable_noise=False, start_step=None, last_step=None, force_full_denoise=False, seed=None):
+                    denoise=1.0, disable_noise=False, start_step=None, last_step=None, force_full_denoise=False, seed=None, callback=None):
+    """
+    Common KSampler wrapper
+
+    Args:
+        model: Model from checkpoint
+        latent: Latent image dict
+        positive: Positive conditioning
+        negative: Negative conditioning
+        steps: Number of sampling steps
+        cfg: CFG scale
+        sampler_name: Sampler algorithm name
+        scheduler: Scheduler name
+        denoise: Denoise strength (0.0-1.0)
+        disable_noise: If True, use zeros instead of noise
+        start_step: Starting step (optional)
+        last_step: Last step (optional)
+        force_full_denoise: Force full denoising
+        seed: Random seed (auto-generated if None)
+        callback: Optional callback function(step, x0, x, total_steps) called during sampling
+
+    Returns:
+        tuple: (output_latent_dict, used_seed)
+    """
     # Generate random seed if not provided
     if seed is None:
         seed = random.randint(1, 1000000000)
@@ -55,8 +78,8 @@ def common_ksampler(model, latent, positive, negative, steps, cfg, sampler_name=
     if "noise_mask" in latent:
         noise_mask = latent["noise_mask"]
 
-    callback = None
     disable_pbar = False
+
     samples = sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,
                      denoise=denoise, disable_noise=disable_noise, start_step=start_step, last_step=last_step,
                      force_full_denoise=force_full_denoise, noise_mask=noise_mask, callback=callback,

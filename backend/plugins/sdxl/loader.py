@@ -14,7 +14,11 @@ from ..base_plugin import BasePlugin, PluginResult
 import bricks.comfy_bricks as comfy_bricks
 from bricks.generation_params import save_generation_params
 from bricks.comfy_constants import SAMPLER_NAMES, SCHEDULER_NAMES, RECOMMENDED_SAMPLERS, RECOMMENDED_SCHEDULERS
+from bricks.preview_bricks import create_preview_callback, save_preview_image
 from config import Config
+from database import get_db
+from services.frame_service import FrameService
+from models.frame import FrameCreate
 
 
 class SDXLPlugin(BasePlugin):
@@ -30,6 +34,10 @@ class SDXLPlugin(BasePlugin):
         self.clip = None
         self.vae = None
         self.loaded_checkpoint = None
+        self.current_frame_id = None
+        self.preview_path = None
+        self.db = None
+        self.frame_service = None
 
     async def generate(
         self,
@@ -61,6 +69,9 @@ class SDXLPlugin(BasePlugin):
 
             # Extract and validate parameters
             prompt = data.get('prompt')
+            model_name = data.get('model_name')
+
+            # Validate required parameters before initializing DB
             if not prompt:
                 return PluginResult(
                     success=False,
@@ -68,7 +79,6 @@ class SDXLPlugin(BasePlugin):
                     error="Parameter 'prompt' is required"
                 )
 
-            model_name = data.get('model_name')
             if not model_name:
                 return PluginResult(
                     success=False,
@@ -86,6 +96,10 @@ class SDXLPlugin(BasePlugin):
             seed = data.get('seed', None)  # None = random seed
             project_id = data.get('project_id', None)
             loras = data.get('loras', [])  # List of LoRA configurations
+
+            # Initialize frame service for preview updates using global DB
+            self.db = get_db()
+            self.frame_service = FrameService(self.db)
 
             # Check for stop request
             if self.should_stop:
@@ -114,7 +128,32 @@ class SDXLPlugin(BasePlugin):
                         error=f"Failed to load checkpoint: {str(e)}"
                     )
 
+            # Create initial frame entry with preview path
+            if project_id:
+                try:
+                    # Prepare preview path
+                    frames_dir = Path(Config.FRAMES_DIR)
+                    frames_dir.mkdir(parents=True, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    preview_filename = f"task_{task_id}_{timestamp}_preview.png"
+                    self.preview_path = str(frames_dir / preview_filename)
+
+                    # Create frame entry in database
+                    frame_create = FrameCreate(
+                        path=self.preview_path,
+                        generator='sdxl',
+                        project_id=project_id
+                    )
+                    created_frame = await self.frame_service.create_frame(frame_create)
+                    self.current_frame_id = created_frame.id
+                    print(f"Created frame {self.current_frame_id} for preview updates")
+
+                except Exception as e:
+                    print(f"Warning: Failed to create initial frame: {e}")
+                    # Continue without frame updates
+
             if self.should_stop:
+                await self.db.close()
                 return PluginResult(success=False, data={}, error="Generation stopped")
 
             # Step 1.5: Apply LoRAs if specified (10%)
@@ -174,8 +213,89 @@ class SDXLPlugin(BasePlugin):
             if self.should_stop:
                 return PluginResult(success=False, data={}, error="Generation stopped")
 
-            # Step 4: Run KSampler (20% -> 85%)
+            # Step 4: Create frame and initial preview image before sampling
+            await self.update_progress(20.0, progress_callback)
+
+            # Create frame record and preview file path
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"task_{task_id}_{timestamp}.png"
+            preview_filename = f"task_{task_id}_{timestamp}_preview.png"
+            frames_dir = Path(Config.FRAMES_DIR)
+            frames_dir.mkdir(parents=True, exist_ok=True)
+
+            self.preview_path = str(frames_dir / preview_filename)
+            final_path = str(frames_dir / filename)
+
+            # Create initial preview from latent (blank or noise pattern)
+            try:
+                # Generate initial preview from latent
+                from bricks.preview_bricks import PreviewGenerator
+                preview_gen = PreviewGenerator(self.model)
+                initial_preview = preview_gen.generate_preview(latent["samples"])
+                if initial_preview:
+                    from bricks.preview_bricks import save_preview_image
+                    save_preview_image(initial_preview, self.preview_path)
+                    print(f"Created initial preview: {self.preview_path}")
+                else:
+                    # Create blank image if preview generation fails
+                    blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
+                    blank_img.save(self.preview_path)
+                    print(f"Created blank preview: {self.preview_path}")
+            except Exception as e:
+                print(f"Warning: Failed to create initial preview: {e}")
+                # Create blank image as fallback
+                blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
+                blank_img.save(self.preview_path)
+
+            # Create frame record in database
+            from models.frame import FrameCreate
+            frame_create = FrameCreate(
+                path=self.preview_path,  # Initially point to preview
+                generator='sdxl',
+                project_id=project_id
+            )
+            frame_record = await self.frame_service.create_frame(frame_create)
+            self.current_frame_id = frame_record.id
+            print(f"Created frame record: ID {self.current_frame_id}")
+
+            # Broadcast "generation started" message with preview path
+            from handlers.websocket import broadcast_message
+            await broadcast_message({
+                'type': 'generation_started',
+                'data': {
+                    'task_id': task_id,
+                    'frame_id': self.current_frame_id,
+                    'project_id': project_id,
+                    'preview_path': self.preview_path,
+                    'generator': 'sdxl'
+                }
+            })
+            print(f"Broadcasted generation_started for frame {self.current_frame_id}")
+
+            # Step 5: Run KSampler with preview callback (25% -> 85%)
             await self.update_progress(25.0, progress_callback)
+
+            # Create preview callback to update frame during sampling
+            def on_preview(step, total_steps, preview_image):
+                """Called at each sampling step - just overwrites the preview file"""
+                try:
+                    # Update progress (25% + step progress to 85%)
+                    step_progress = 25.0 + (step / total_steps) * 60.0
+                    if progress_callback:
+                        asyncio.create_task(self.update_progress(step_progress, progress_callback))
+
+                    # Simply overwrite preview image file
+                    if self.preview_path and preview_image:
+                        save_preview_image(preview_image, self.preview_path)
+                        if (step + 1) % 5 == 0:  # Log every 5 steps
+                            print(f"Preview updated: step {step+1}/{total_steps}")
+
+                except Exception as e:
+                    print(f"Warning: Preview update failed: {e}")
+
+            # Create ComfyUI callback with ProgressBar integration
+            sampling_callback = create_preview_callback(self.model, steps, on_preview)
+
             try:
                 sample, used_seed = comfy_bricks.common_ksampler(
                     self.model,
@@ -186,7 +306,8 @@ class SDXLPlugin(BasePlugin):
                     cfg_scale,
                     sampler_name=sampler,
                     scheduler=scheduler,
-                    seed=seed
+                    seed=seed,
+                    callback=sampling_callback
                 )
             except Exception as e:
                 return PluginResult(
@@ -215,25 +336,26 @@ class SDXLPlugin(BasePlugin):
             if self.should_stop:
                 return PluginResult(success=False, data={}, error="Generation stopped")
 
-            # Step 6: Save frame (95%)
+            # Step 6: Save final frame (95%)
             await self.update_progress(95.0, progress_callback)
             try:
                 # Ensure frames directory exists
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
-                # Generate unique filename
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"task_{task_id}_{timestamp}.png"
-                output_path = frames_dir / filename
+                # Simply overwrite preview file with final image
+                output_path_str = self.preview_path
+                filename = os.path.basename(output_path_str)
 
-                # Save image
+                # Save final image (overwrite preview)
                 for (batch_number, img_tensor) in enumerate(image):
                     i = 255. * img_tensor.cpu().detach().numpy()
                     img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
-                    img.save(str(output_path), compress_level=4)
+                    img.save(output_path_str, compress_level=4)
 
-                output_path_str = str(output_path)
+                print(f"Saved final image (overwrote preview): {output_path_str}")
+
+                # Frame path is already correct in DB (points to this file)
 
                 # Save generation parameters to JSON file
                 save_generation_params(
@@ -268,6 +390,20 @@ class SDXLPlugin(BasePlugin):
             # Step 7: Complete (100%)
             await self.update_progress(100.0, progress_callback)
 
+            # Broadcast "generation completed" message
+            from handlers.websocket import broadcast_message
+            await broadcast_message({
+                'type': 'generation_completed',
+                'data': {
+                    'task_id': task_id,
+                    'frame_id': self.current_frame_id,
+                    'project_id': project_id,
+                    'final_path': output_path_str,
+                    'generator': 'sdxl'
+                }
+            })
+            print(f"Broadcasted generation_completed for frame {self.current_frame_id}")
+
             result_data = {
                 'output_path': output_path_str,
                 'filename': filename,
@@ -281,7 +417,8 @@ class SDXLPlugin(BasePlugin):
                 'scheduler': scheduler,
                 'seed': used_seed,
                 'model_name': model_name,
-                'project_id': project_id
+                'project_id': project_id,
+                'frame_id': self.current_frame_id  # Include frame_id to prevent duplicate creation
             }
 
             self.is_running = False

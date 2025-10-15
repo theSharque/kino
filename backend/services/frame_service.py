@@ -185,3 +185,25 @@ class FrameService:
         """Get all frames for a specific project"""
         return await self.get_all_frames(project_id=project_id)
 
+    async def update_frame_path(self, frame_id: int, new_path: str) -> Optional[FrameResponse]:
+        """
+        Update frame path (used for preview updates during generation)
+
+        Args:
+            frame_id: Frame ID to update
+            new_path: New path to image file
+
+        Returns:
+            Updated FrameResponse or None if frame not found
+        """
+        query = """
+            UPDATE frames
+            SET path = ?, updated_at = ?
+            WHERE id = ?
+        """
+        now = datetime.utcnow().isoformat()
+        await self.db.execute(query, (new_path, now, frame_id))
+
+        # Fetch updated frame
+        return await self.get_frame_by_id(frame_id)
+

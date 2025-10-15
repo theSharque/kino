@@ -41,7 +41,9 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
-  const frameUpdateCallbackRef = useRef<FrameUpdateCallback | undefined>(onFrameUpdate);
+  const frameUpdateCallbackRef = useRef<FrameUpdateCallback | undefined>(
+    onFrameUpdate
+  );
 
   const connect = useCallback(() => {
     // Clear any pending reconnect
@@ -73,6 +75,15 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
             console.log("📸 Frame updated:", message.data);
             if (frameUpdateCallbackRef.current) {
               frameUpdateCallbackRef.current(message.data);
+            }
+          } else {
+            // Pass all other messages (generation_started, generation_completed, etc.) to callback
+            console.log(
+              `📨 WebSocket message (${message.type}):`,
+              message.data || message
+            );
+            if (frameUpdateCallbackRef.current) {
+              frameUpdateCallbackRef.current(message);
             }
           }
         } catch (err) {
