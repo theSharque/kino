@@ -21,10 +21,11 @@ export interface SystemMetrics {
   } | null;
 }
 
-interface WebSocketMessage {
-  type: string;
-  data?: any;
-}
+type MetricsMessage = { type: "metrics"; data: SystemMetrics };
+type FrameUpdatedMessage = { type: "frame_updated"; data: FrameUpdateEvent };
+type OtherMessageType = Exclude<string, "metrics" | "frame_updated">;
+type OtherMessage = { type: OtherMessageType; data?: unknown };
+type WebSocketMessage = MetricsMessage | FrameUpdatedMessage | OtherMessage;
 
 export interface FrameUpdateEvent {
   frame_id: number;
@@ -35,7 +36,7 @@ export interface FrameUpdateEvent {
   updated_at: string;
 }
 
-type FrameUpdateCallback = (event: FrameUpdateEvent) => void;
+type FrameUpdateCallback = (event: FrameUpdateEvent | WebSocketMessage) => void;
 
 export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
@@ -71,13 +72,13 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
 
-          if (message.type === "metrics" && message.data) {
-            setMetrics(message.data);
-            log.debug("ws_metrics", message.data);
-          } else if (message.type === "frame_updated" && message.data) {
-            log.info("frame_updated", message.data);
+          if (message.type === "metrics") {
+            setMetrics((message as MetricsMessage).data);
+            log.debug("ws_metrics", (message as MetricsMessage).data);
+          } else if (message.type === "frame_updated") {
+            log.info("frame_updated", (message as FrameUpdatedMessage).data);
             if (frameUpdateCallbackRef.current) {
-              frameUpdateCallbackRef.current(message.data);
+              frameUpdateCallbackRef.current((message as FrameUpdatedMessage).data);
             }
           } else {
             // Pass all other messages (generation_started, generation_completed, etc.) to callback
