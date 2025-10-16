@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 
-def save_generation_params(
+async def save_generation_params(
     output_path: str = None,
     plugin_name: str = None,
     plugin_version: str = None,
@@ -67,8 +67,10 @@ def save_generation_params(
     if frame_id:
         # Regeneration mode: get frame path from database
         from database import get_db
+        from services.frame_service import FrameService
         db = get_db()
-        frame = db.get_frame_by_id(frame_id)
+        frame_service = FrameService(db)
+        frame = await frame_service.get_frame_by_id(frame_id)
         if not frame:
             raise ValueError(f"Frame {frame_id} not found")
         img_path = Path(frame.path)
