@@ -78,7 +78,9 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
           } else if (message.type === "frame_updated") {
             log.info("frame_updated", (message as FrameUpdatedMessage).data);
             if (frameUpdateCallbackRef.current) {
-              frameUpdateCallbackRef.current((message as FrameUpdatedMessage).data);
+              frameUpdateCallbackRef.current(
+                (message as FrameUpdatedMessage).data
+              );
             }
           } else {
             // Pass all other messages (generation_started, generation_completed, etc.) to callback
