@@ -144,7 +144,7 @@ class ProjectService:
 
         # Get all frames for this project
         frames = await frame_service.get_frames_by_project(project_id)
-        
+
         # Delete all associated frames (this will also delete their files)
         for frame in frames:
             await frame_service.delete_frame(frame.id)
