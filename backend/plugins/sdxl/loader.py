@@ -172,7 +172,12 @@ class SDXLPlugin(BasePlugin):
                                 'loras': loras,
                                 'generator': 'sdxl'
                             }
-                            save_generation_params(regenerate_frame_id, updated_params)
+                            await save_generation_params(
+                                frame_id=regenerate_frame_id,
+                                plugin_name='sdxl',
+                                plugin_version='1.0.0',
+                                parameters=updated_params
+                            )
                             print(f"Updated generation parameters for frame {regenerate_frame_id}")
                         except Exception as e:
                             print(f"Warning: Failed to update generation parameters: {e}")
@@ -329,8 +334,7 @@ class SDXLPlugin(BasePlugin):
                     # Simply overwrite preview image file
                     if self.preview_path and preview_image:
                         save_preview_image(preview_image, self.preview_path)
-                        if (step + 1) % 5 == 0:  # Log every 5 steps
-                            print(f"Preview updated: step {step+1}/{total_steps}")
+                        print(f"Preview updated: step {step+1}/{total_steps}")
 
                 except Exception as e:
                     print(f"Warning: Preview update failed: {e}")
@@ -402,7 +406,7 @@ class SDXLPlugin(BasePlugin):
                 # Save generation parameters to JSON file
                 if regenerate_frame_id:
                     # For regeneration: save with existing frame_id
-                    save_generation_params(
+                    await save_generation_params(
                         frame_id=regenerate_frame_id,
                         plugin_name='sdxl',
                         plugin_version='1.0.0',
@@ -422,7 +426,7 @@ class SDXLPlugin(BasePlugin):
                     )
                 else:
                     # For new generation: save with task_id
-                    save_generation_params(
+                    await save_generation_params(
                         output_path=output_path_str,
                         plugin_name='sdxl',
                         plugin_version='1.0.0',

@@ -132,14 +132,28 @@ class ProjectService:
         return await self.get_project_by_id(project_id)
 
     async def delete_project(self, project_id: int) -> bool:
-        """Delete a project"""
+        """Delete a project and all associated frames"""
         # Check if project exists
         existing = await self.get_project_by_id(project_id)
         if not existing:
             return False
 
+        # Import frame service to delete associated frames
+        from services.frame_service import FrameService
+        frame_service = FrameService(self.db)
+
+        # Get all frames for this project
+        frames = await frame_service.get_frames_by_project(project_id)
+        
+        # Delete all associated frames (this will also delete their files)
+        for frame in frames:
+            await frame_service.delete_frame(frame.id)
+            print(f"Deleted frame {frame.id} for project {project_id}")
+
+        # Delete the project from database
         query = "DELETE FROM projects WHERE id = ?"
         await self.db.execute(query, (project_id,))
 
+        print(f"Deleted project {project_id} and {len(frames)} associated frames")
         return True
 
