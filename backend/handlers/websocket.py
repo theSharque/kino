@@ -4,7 +4,6 @@ WebSocket handler for real-time updates
 from aiohttp import web, WSMsgType
 import asyncio
 import json
-from typing import Set
 import weakref
 from services.system_monitor import SystemMonitor
 from logger import get_logger

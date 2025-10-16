@@ -3,7 +3,7 @@ API handlers with OpenAPI documentation using aiohttp-pydantic
 """
 from aiohttp import web
 from aiohttp_pydantic import PydanticView
-from aiohttp_pydantic.oas.typing import r200, r400, r404, r500
+from aiohttp_pydantic.oas.typing import r200, r404
 
 from database import get_db
 from services.project_service import ProjectService

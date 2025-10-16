@@ -6,7 +6,7 @@ import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from database import Database
-from models.task import TaskCreate, TaskUpdate, TaskResponse, TaskStatus
+from models.task import TaskCreate, TaskResponse, TaskStatus
 from plugins.plugin_loader import PluginRegistry
 from logger import get_logger
 
