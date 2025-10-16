@@ -7,6 +7,7 @@ import json
 from typing import Set
 import weakref
 from services.system_monitor import SystemMonitor
+from logger import get_logger
 
 
 # Global set of connected WebSocket clients
@@ -27,6 +28,7 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
     ws = web.WebSocketResponse(heartbeat=10.0)
     await ws.prepare(request)
 
+    log = get_logger("ws")
     # Add to active connections
     websockets.add(ws)
 
@@ -34,7 +36,7 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
     generator_service = request.app.get('generator_service')
     system_monitor = SystemMonitor()
 
-    print(f"📡 WebSocket client connected. Total clients: {len(websockets)}")
+    log.info("client_connected", extra={"total_clients": len(websockets)})
 
     # Background task to send periodic updates
     async def send_updates():
@@ -83,6 +85,12 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
 
                 # Send to client
                 await ws.send_json(update)
+                log.debug("metrics_sent", extra={
+                    "pending": pending_count,
+                    "running": running_count,
+                    "current_task": (current_task.id if current_task else None),
+                    "progress": current_progress,
+                })
 
                 # Wait before next update (2 seconds)
                 await asyncio.sleep(2.0)
@@ -90,7 +98,7 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            print(f"Error in WebSocket updates: {e}")
+            log.exception("ws_update_error")
 
     # Start background update task
     update_task = asyncio.create_task(send_updates())
@@ -112,10 +120,10 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
                         break
 
                 except json.JSONDecodeError:
-                    print(f"Invalid JSON from client: {msg.data}")
+                    log.warning("invalid_json", extra={"data": msg.data[:256]})
 
             elif msg.type == WSMsgType.ERROR:
-                print(f"WebSocket error: {ws.exception()}")
+                log.error("ws_error", extra={"exception": str(ws.exception())})
                 break
 
     finally:
@@ -128,7 +136,7 @@ async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
 
         # Remove from active connections
         websockets.discard(ws)
-        print(f"📡 WebSocket client disconnected. Total clients: {len(websockets)}")
+        log.info("client_disconnected", extra={"total_clients": len(websockets)})
 
     return ws
 

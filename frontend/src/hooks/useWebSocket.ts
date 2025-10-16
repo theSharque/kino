@@ -3,6 +3,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WS_URL, WS_RECONNECT_DELAY } from "../config/constants";
+import { log } from "../lib/logger";
 
 export interface SystemMetrics {
   cpu_percent: number;
@@ -59,9 +60,10 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
 
     try {
       const ws = new WebSocket(WS_URL);
+      log.info("ws_connecting", { url: WS_URL });
 
       ws.onopen = () => {
-        console.log("📡 WebSocket connected");
+        log.info("ws_connected");
         setIsConnected(true);
       };
 
@@ -71,45 +73,43 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
 
           if (message.type === "metrics" && message.data) {
             setMetrics(message.data);
+            log.debug("ws_metrics", message.data);
           } else if (message.type === "frame_updated" && message.data) {
-            console.log("📸 Frame updated:", message.data);
+            log.info("frame_updated", message.data);
             if (frameUpdateCallbackRef.current) {
               frameUpdateCallbackRef.current(message.data);
             }
           } else {
             // Pass all other messages (generation_started, generation_completed, etc.) to callback
-            console.log(
-              `📨 WebSocket message (${message.type}):`,
-              message.data || message
-            );
+            log.info("ws_message", { type: message.type, data: message.data });
             if (frameUpdateCallbackRef.current) {
               frameUpdateCallbackRef.current(message);
             }
           }
         } catch (err) {
-          console.error("Failed to parse WebSocket message:", err);
+          log.error("ws_parse_error", err);
         }
       };
 
       ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        log.error("ws_error", error);
       };
 
       ws.onclose = () => {
-        console.log("📡 WebSocket disconnected");
+        log.info("ws_disconnected");
         setIsConnected(false);
         wsRef.current = null;
 
         // Schedule reconnect
         reconnectTimeoutRef.current = window.setTimeout(() => {
-          console.log("🔄 Reconnecting WebSocket...");
+          log.info("ws_reconnecting");
           connect();
         }, WS_RECONNECT_DELAY);
       };
 
       wsRef.current = ws;
     } catch (err) {
-      console.error("Failed to create WebSocket:", err);
+      log.error("ws_create_failed", err);
       setIsConnected(false);
 
       // Schedule reconnect
@@ -136,6 +136,7 @@ export const useWebSocket = (onFrameUpdate?: FrameUpdateCallback) => {
   const sendMessage = useCallback((message: WebSocketMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
+      log.debug("ws_send", message);
     }
   }, []);
 

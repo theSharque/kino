@@ -1,9 +1,9 @@
 # Kino Project - AI Assistant Rules
 
-## 🔴 FIRST ACTION: Read PROJECT_CONTEXT.md
+## 🔴 FIRST ACTION: Read CONTEXT
 
 **AT THE START OF EVERY CHAT SESSION, IMMEDIATELY READ:**
-- `/qs/kino/PROJECT_CONTEXT.md` - Contains complete project structure, tech stack, conventions, and how to run everything
+- `/qs/kino/CONTEXT` - Unified high-signal project context (architecture, runtime, rules)
 
 This file tells you:
 - How to start backend and frontend servers
@@ -12,11 +12,11 @@ This file tells you:
 - Code conventions and patterns
 - Complete architecture overview
 
-## Primary Rule: Always Use PROJECT_CONTEXT.md
+## Primary Rule: Always Use CONTEXT
 
 **CRITICAL:** Before generating any code, making architectural decisions, or implementing features, you MUST:
 
-1. **READ** `/qs/kino/PROJECT_CONTEXT.md` first
+1. **READ** `/qs/kino/CONTEXT` first
 2. **FOLLOW** all conventions, patterns, and guidelines specified in it
 3. **UPDATE** the file when:
    - Adding new API endpoints
@@ -132,5 +132,13 @@ This project values:
 - Maintainability over quick fixes
 - Documentation over assumptions
 
-**The PROJECT_CONTEXT.md file is the single source of truth for this project.**
+**The CONTEXT file is the single source of truth for this project.**
+
+## MCP Context7 Requirement
+
+- You MUST use MCP Context7 tools to fetch authoritative library docs before relying on memory:
+  - aiohttp, aiohttp-pydantic, Pydantic v2
+  - PyTorch and ComfyUI-related APIs
+  - React, Vite, TypeScript
+- Do not invent or guess APIs. Resolve library ID, fetch docs, then implement.
 

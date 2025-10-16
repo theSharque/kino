@@ -8,6 +8,7 @@ from datetime import datetime
 from database import Database
 from models.task import TaskCreate, TaskUpdate, TaskResponse, TaskStatus
 from plugins.plugin_loader import PluginRegistry
+from logger import get_logger
 
 
 class GeneratorService:
@@ -16,6 +17,7 @@ class GeneratorService:
     def __init__(self, db: Database):
         self.db = db
         self.running_tasks: Dict[int, Any] = {}  # Store running plugin instances
+        self.log = get_logger("generator")
 
     async def get_all_tasks(self) -> List[TaskResponse]:
         """Get all tasks"""
@@ -70,6 +72,7 @@ class GeneratorService:
         if not created_task:
             raise RuntimeError("Failed to create task")
 
+        self.log.info("task_created", extra={"task_id": created_task.id, "type": created_task.type})
         return created_task
 
     async def update_task_status(
@@ -145,6 +148,7 @@ class GeneratorService:
 
         # Update status to running
         await self.update_task_status(task_id, TaskStatus.RUNNING, progress=0.0)
+        self.log.info("task_started", extra={"task_id": task_id, "type": task.type})
 
         # Start generation in background
         asyncio.create_task(self._run_generation(task_id, plugin, task.data))
@@ -164,6 +168,7 @@ class GeneratorService:
                 await self.update_task_status(task_id, TaskStatus.RUNNING, progress=progress)
 
             # Run generation
+            self.log.info("generation_begin", extra={"task_id": task_id})
             result = await plugin.generate(task_id, data, progress_callback)
 
             # Update final status
@@ -174,6 +179,7 @@ class GeneratorService:
                     progress=100.0,
                     result=result.data
                 )
+                self.log.info("task_completed", extra={"task_id": task_id})
 
                 # Create frame record if generation was successful
                 if result.data and 'output_path' in result.data:
@@ -188,6 +194,7 @@ class GeneratorService:
                     TaskStatus.FAILED,
                     error=result.error
                 )
+                self.log.error("task_failed", extra={"task_id": task_id, "error": result.error})
 
         except Exception as e:
             await self.update_task_status(
@@ -195,11 +202,13 @@ class GeneratorService:
                 TaskStatus.FAILED,
                 error=str(e)
             )
+            self.log.exception("task_exception", extra={"task_id": task_id})
 
         finally:
             # Clean up
             if task_id in self.running_tasks:
                 del self.running_tasks[task_id]
+            self.log.info("task_cleanup", extra={"task_id": task_id})
 
     async def _create_frame_record(self, task_id: int, task_data: Dict[str, Any], result_data: Dict[str, Any]):
         """Create frame record in database after successful generation"""
@@ -207,7 +216,7 @@ class GeneratorService:
             # Check if frame was already created by plugin (e.g., for preview support)
             if 'frame_id' in result_data and result_data['frame_id']:
                 frame_id = result_data['frame_id']
-                print(f"Frame {frame_id} already created by plugin for task {task_id}, skipping duplicate")
+                self.log.info("frame_exists", extra={"frame_id": frame_id, "task_id": task_id})
 
                 # Return the existing frame
                 from services.frame_service import FrameService
@@ -218,13 +227,13 @@ class GeneratorService:
             # Get project_id from task data
             project_id = task_data.get('project_id')
             if not project_id:
-                print(f"Warning: No project_id found in task {task_id} data, skipping frame creation")
+                self.log.warning("no_project_id", extra={"task_id": task_id})
                 return None
 
             # Get generator name from task
             task = await self.get_task_by_id(task_id)
             if not task:
-                print(f"Warning: Task {task_id} not found, skipping frame creation")
+                self.log.warning("task_missing_on_frame_create", extra={"task_id": task_id})
                 return None
 
             # Create frame record
@@ -240,11 +249,11 @@ class GeneratorService:
             frame_service = FrameService(self.db)
             frame = await frame_service.create_frame(frame_create)
 
-            print(f"Created frame record: ID {frame.id} for task {task_id}")
+            self.log.info("frame_created", extra={"frame_id": frame.id, "task_id": task_id})
             return frame
 
         except Exception as e:
-            print(f"Error creating frame record for task {task_id}: {e}")
+            self.log.exception("frame_create_error", extra={"task_id": task_id})
             # Don't fail the task if frame creation fails
             return None
 
@@ -266,10 +275,10 @@ class GeneratorService:
             }
 
             await broadcast_message(message)
-            print(f"Broadcasted frame update event for frame {frame.id}")
+            self.log.info("frame_update_broadcasted", extra={"frame_id": frame.id})
 
         except Exception as e:
-            print(f"Error broadcasting frame update: {e}")
+            self.log.exception("frame_update_broadcast_error", extra={"frame_id": getattr(frame, 'id', None)})
 
     async def stop_generation(self, task_id: int) -> bool:
         """Stop a running task"""
@@ -285,6 +294,7 @@ class GeneratorService:
             plugin = self.running_tasks[task_id]
             await plugin.stop()
             del self.running_tasks[task_id]
+            self.log.info("task_stopped", extra={"task_id": task_id})
 
         # Update status
         await self.update_task_status(task_id, TaskStatus.STOPPED)

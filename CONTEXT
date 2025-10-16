@@ -1,0 +1,55 @@
+Kino – Unified Project Context
+Last Updated: 2025-10-16
+
+Overview
+- SPA to manage projects and generate image frames with SDXL.
+- Monorepo: backend (Python/aiohttp) + frontend (React/TypeScript).
+
+Tech & Runtime
+- Backend: Python 3.12, aiohttp, aiosqlite, Pydantic v2, PyTorch, ComfyUI integrated.
+- Frontend: React + TypeScript (Vite).
+- Realtime: WebSocket ws://localhost:8000/ws (2s metrics, 10s heartbeat).
+
+How to Run
+- Backend: cd backend && source venv/bin/activate && python main.py  (logs: backend/server.log)
+- Frontend: cd frontend && npm install && npm run dev
+- API base: http://localhost:8000
+
+Storage & Paths
+- Database: backend/data/kino.db (SQLite)
+- Frames: backend/data/frames (.png + .json sidecar)
+- Models: backend/models_storage
+
+Generation (SDXL plugin)
+- Filenames: task_{task_id}_{timestamp}.png
+- Parameters JSON: same basename with .json next to the image
+- Preview: same .png file used for preview and final; overwritten each step and on completion (no "_preview" suffix)
+- Params saving: save_generation_params is async, uses keyword args; for regeneration pass frame_id and await
+
+Frontend Behavior
+- On generation_started: add frame to refresh set; reload preview every 1s with cache-busting (?t=timestamp)
+- On generation_completed: stop auto-refresh
+
+API (v1 highlights)
+- Projects: /api/v1/projects, /api/v1/projects/{id}
+- Frames: /api/v1/frames, /api/v1/frames/{id}
+- Generator tasks: /api/v1/generator/tasks, /api/v1/generator/tasks/{id}
+
+Deletion Semantics
+- Delete project: cascades frames, removes .png and .json files
+- Delete frame: removes its files and DB row
+
+Testing Defaults
+- width=512, height=512, steps=5–10
+
+Current Status / Fixes
+- Project deletion confirmed OK; historical orphans cleaned
+- Fixed save_generation_params (async + FrameService), updated plugin calls
+- Preview logs every step; frontend auto-refresh confirmed (1s)
+- Removed "_preview" suffix everywhere; unified naming
+
+Rules for AI Assistance
+- ALWAYS read this CONTEXT before coding.
+- ALWAYS use MCP Context7 for library documentation (aiohttp, aiohttp-pydantic, Pydantic v2, PyTorch, React, Vite). Do not guess APIs; fetch docs.
+- Keep backend/frontend models in sync; follow naming conventions.
+- Test new endpoints with curl; keep changes minimal and consistent.
