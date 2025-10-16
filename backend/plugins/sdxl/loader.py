@@ -262,7 +262,7 @@ class SDXLPlugin(BasePlugin):
                 # New generation: create new paths
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"task_{task_id}_{timestamp}.png"
-                preview_filename = f"task_{task_id}_{timestamp}_preview.png"
+                preview_filename = f"task_{task_id}_{timestamp}.png"
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
@@ -270,7 +270,9 @@ class SDXLPlugin(BasePlugin):
                 final_path = str(frames_dir / filename)
             else:
                 # Regeneration: use existing frame's path
-                final_path = self.preview_path  # Same path for both preview and final
+                existing_frame = await self.frame_service.get_frame_by_id(regenerate_frame_id)
+                final_path = existing_frame.path
+                self.preview_path = final_path  # Same path for both preview and final
 
             # Create initial preview from latent (blank or noise pattern)
             try:

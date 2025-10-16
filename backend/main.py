@@ -12,6 +12,7 @@ from database import init_db, close_db, get_db, Database
 from services.generator_service import GeneratorService
 from handlers import websocket
 from datetime import datetime
+from logger import setup_logging, get_logger
 
 
 @web.middleware
@@ -64,14 +65,15 @@ async def cleanup_stuck_tasks(db: Database):
 
 async def on_startup(app: web.Application):
     """Called on application startup"""
+    log = get_logger("startup")
     db_path = os.getenv('DB_PATH', './data/kino.db')
     await init_db(db_path)
-    print(f"Database initialized at {db_path}")
+    log.info("Database initialized", extra={"db_path": db_path})
 
     # Initialize generator service
     db = get_db()
     app['generator_service'] = GeneratorService(db)
-    print("Generator service initialized")
+    log.info("Generator service initialized")
 
     # Clean up any stuck running tasks from previous sessions
     await cleanup_stuck_tasks(db)
@@ -79,16 +81,19 @@ async def on_startup(app: web.Application):
 
 async def on_cleanup(app: web.Application):
     """Called on application cleanup"""
+    log = get_logger("cleanup")
     # Close WebSocket connections
     await websocket.on_shutdown(app)
     # Close database
     await close_db()
-    print("Database connection closed")
+    log.info("Database connection closed")
 
 
 def create_app() -> web.Application:
     """Create and configure the aiohttp application"""
     load_dotenv()
+    setup_logging()
+    log = get_logger("bootstrap")
 
     app = web.Application(middlewares=[cors_middleware])
 
@@ -108,6 +113,7 @@ def create_app() -> web.Application:
         swagger_ui_version="5"
     )
 
+    log.info("App created")
     return app
 
 
@@ -117,7 +123,7 @@ def main():
     port = int(os.getenv('PORT', 8000))
     host = os.getenv('HOST', '0.0.0.0')
 
-    print(f"======= Starting server on http://{host}:{port}/ =======")
+    get_logger("server").info("Starting server", extra={"host": host, "port": port})
     web.run_app(app, host=host, port=port)
 
 
