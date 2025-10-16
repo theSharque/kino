@@ -30,6 +30,11 @@ Frontend Behavior
 - On generation_started: add frame to refresh set; reload preview every 1s with cache-busting (?t=timestamp)
 - On generation_completed: stop auto-refresh
 
+Frontend Debug Logs
+- Logger: src/lib/logger.ts (levels: debug/info/warn/error; controlled by VITE_LOG_LEVEL)
+- Enable verbose logs: npm run dev:debug (sets VITE_LOG_LEVEL=debug)
+- Production default: info (override via env)
+
 API (v1 highlights)
 - Projects: /api/v1/projects, /api/v1/projects/{id}
 - Frames: /api/v1/frames, /api/v1/frames/{id}
