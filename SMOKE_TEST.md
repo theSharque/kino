@@ -52,11 +52,24 @@ This document describes automated smoke tests to verify the core functionality o
 **Objective**: Verify application starts correctly without errors
 
 **Steps**:
-1. Start backend server (`cd backend && python main.py`)
-2. Start frontend server (`cd frontend && npm run dev`)
-3. Check backend logs for any startup errors
-4. Check frontend logs for any startup errors
-5. Open browser and navigate to frontend URL (typically `http://localhost:5173`)
+1. Start backend server with log output to file:
+   ```bash
+   cd backend && python main.py > server.log 2>&1 &
+   ```
+2. Start frontend server with log output to file:
+   ```bash
+   cd frontend && npm run dev > frontend.log 2>&1 &
+   ```
+3. Wait 5-10 seconds for servers to fully start
+4. Check backend logs for any startup errors:
+   ```bash
+   tail -20 backend/server.log
+   ```
+5. Check frontend logs for any startup errors:
+   ```bash
+   tail -20 frontend/frontend.log
+   ```
+6. Open browser and navigate to frontend URL (typically `http://localhost:5173`)
 
 **Expected Results**:
 - ✅ Backend server starts without errors
@@ -188,7 +201,7 @@ This document describes automated smoke tests to verify the core functionality o
 ## Test Execution Notes
 
 ### Backend Log Monitoring
-Look for these log patterns:
+Monitor `backend/server.log` for these log patterns:
 - `[INFO] Server started on http://0.0.0.0:8000`
 - `[INFO] WebSocket connection established`
 - `[INFO] Starting frame generation for project {project_id}`
@@ -196,7 +209,7 @@ Look for these log patterns:
 - `[INFO] Frame generation completed successfully`
 
 ### Frontend Log Monitoring
-Look for these log patterns:
+Monitor `frontend/frontend.log` for these log patterns:
 - `[INFO] WebSocket connected`
 - `[INFO] Frame updated: {frame_id}`
 - `[INFO] Preview image updated`
@@ -238,9 +251,20 @@ All tests must pass for the application to be considered stable:
 ## Troubleshooting
 
 If tests fail:
-1. Check backend logs for detailed error messages
-2. Check frontend console for JavaScript errors
-3. Verify file system permissions
-4. Verify database integrity
-5. Check WebSocket connection status
-6. Verify all required dependencies are installed
+1. Check backend logs for detailed error messages:
+   ```bash
+   tail -50 backend/server.log
+   ```
+2. Check frontend logs for JavaScript errors:
+   ```bash
+   tail -50 frontend/frontend.log
+   ```
+3. Monitor logs in real-time during tests:
+   ```bash
+   tail -f backend/server.log  # Backend logs
+   tail -f frontend/frontend.log  # Frontend logs
+   ```
+4. Verify file system permissions
+5. Verify database integrity
+6. Check WebSocket connection status
+7. Verify all required dependencies are installed
