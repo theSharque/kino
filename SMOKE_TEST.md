@@ -53,10 +53,12 @@ This document describes automated smoke tests to verify the core functionality o
 ## Test Cases
 
 > **Note**: Tests are interdependent and must be run in order:
+> - Pre-Test Setup: Clean environment
 > - Test 1: Starts servers (required for all subsequent tests)
 > - Test 2: Creates project (required for Tests 3-6)
 > - Tests 3-4: Generate frames (required for Tests 5-6)
 > - Tests 5-6: Test deletion functionality
+> - Post-Test Cleanup: Stop servers and clean logs
 
 ### Test 1: Application Startup
 **Objective**: Verify application starts correctly without errors
@@ -269,6 +271,46 @@ Watch for these error patterns:
 - HTTP 500 errors
 - File system permission errors
 - Database constraint violations
+
+## Post-Test Cleanup
+
+### Stop All Servers and Clean Logs
+**Objective**: Clean up test environment and remove old logs
+
+**Steps**:
+1. Stop backend server:
+   ```bash
+   pkill -f "python.*main.py"
+   ```
+2. Stop frontend server:
+   ```bash
+   pkill -f "vite\|npm.*dev"
+   ```
+3. Wait 2-3 seconds for processes to fully terminate
+4. Verify servers are stopped:
+   ```bash
+   netstat -tulpn | grep :8000  # Should be empty
+   netstat -tulpn | grep :5173  # Should be empty
+   ```
+5. Clean up log files:
+   ```bash
+   rm -f backend/server.log
+   rm -f frontend/frontend.log
+   ```
+6. Verify log files are removed:
+   ```bash
+   ls -la backend/server.log 2>/dev/null || echo "Backend log cleaned"
+   ls -la frontend/frontend.log 2>/dev/null || echo "Frontend log cleaned"
+   ```
+
+**Expected Results**:
+- ✅ No backend processes running on port 8000
+- ✅ No frontend processes running on port 5173
+- ✅ Backend log file removed
+- ✅ Frontend log file removed
+- ✅ Clean environment ready for next test run
+
+---
 
 ## Test Data Cleanup
 
