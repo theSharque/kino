@@ -12,8 +12,12 @@ from config import Config
 from database import get_db
 from services.frame_service import FrameService
 from bricks import comfy_bricks
-from bricks.comfy_bricks import create_preview_callback
-from logger import log
+from bricks.preview_bricks import create_preview_callback
+from logger import setup_logging
+from ..base_plugin import BasePlugin
+
+# Initialize logger
+log = setup_logging()
 
 
 class PluginResult:
@@ -74,10 +78,11 @@ class SDXLLoader:
             log.info("sdxl_generation_start", {"task_id": task_id, "regenerate_frame_id": regenerate_frame_id})
 
             # Extract and validate parameters
-            prompt = data.get('prompt')
-            model_name = data.get('model_name')
-            num_variants = data.get('num_variants', 1)  # Default to 1 variant
-            base_seed = data.get('seed', None)  # Base seed for variants
+            parameters = data.get('parameters', {})
+            prompt = parameters.get('prompt')
+            model_name = parameters.get('model_name')
+            num_variants = parameters.get('num_variants', 1)  # Default to 1 variant
+            base_seed = parameters.get('seed', None)  # Base seed for variants
 
             # Validate required parameters before initializing DB
             if not prompt:
@@ -153,22 +158,22 @@ class SDXLLoader:
                 # Calculate progress for this variant
                 variant_progress_start = 5.0 + (variant_idx / num_variants) * 90.0
                 variant_progress_end = 5.0 + ((variant_idx + 1) / num_variants) * 90.0
-                
+
                 # Generate single variant
                 variant_result = await self._generate_single_variant(
                     variant_idx=variant_idx,
                     base_seed=base_seed,
                     data=data,
-                    progress_callback=lambda p: progress_callback(variant_progress_start + p * (variant_progress_end - variant_progress_start)) if progress_callback else None
+                    progress_callback=lambda p: progress_callback(min(100.0, variant_progress_start + p * (variant_progress_end - variant_progress_start) / 100.0)) if progress_callback else None
                 )
-                
+
                 if not variant_result['success']:
                     return PluginResult(
                         success=False,
                         data={},
                         error=f"Failed to generate variant {variant_idx + 1}: {variant_result['error']}"
                     )
-                
+
                 generated_frames.append(variant_result['frame_id'])
                 log.info("sdxl_variant_completed", {
                     "variant_idx": variant_idx + 1,
@@ -211,18 +216,19 @@ class SDXLLoader:
     ) -> Dict[str, Any]:
         """Generate a single variant of the image"""
         try:
-            # Extract parameters
-            prompt = data.get('prompt')
-            negative_prompt = data.get('negative_prompt', '')
-            width = data.get('width', 1024)
-            height = data.get('height', 1024)
-            steps = data.get('steps', 32)
-            cfg_scale = data.get('cfg_scale', 3.5)
-            model_name = data.get('model_name')
-            sampler = data.get('sampler', 'dpmpp_2m_sde')
-            scheduler = data.get('scheduler', 'sgm_uniform')
-            project_id = data.get('project_id', None)
-            loras = data.get('loras', [])
+            # Extract parameters from data.parameters
+            parameters = data.get('parameters', {})
+            prompt = parameters.get('prompt')
+            negative_prompt = parameters.get('negative_prompt', '')
+            width = parameters.get('width', 1024)
+            height = parameters.get('height', 1024)
+            steps = parameters.get('steps', 32)
+            cfg_scale = parameters.get('cfg_scale', 3.5)
+            model_name = parameters.get('model_name')
+            sampler = parameters.get('sampler', 'dpmpp_2m_sde')
+            scheduler = parameters.get('scheduler', 'sgm_uniform')
+            project_id = data.get('project_id', None)  # project_id is at top level
+            loras = parameters.get('loras', [])
             regenerate_frame_id = data.get('frame_id', None)
             task_id = data.get('task_id', 0)
 
@@ -236,7 +242,7 @@ class SDXLLoader:
             log.info("sdxl_variant_start", {
                 "variant_idx": variant_idx,
                 "seed": current_seed,
-                "prompt": prompt[:50] + "..." if len(prompt) > 50 else prompt
+                "prompt": prompt[:50] + "..." if prompt and len(prompt) > 50 else prompt
             })
 
             # Step 1.5: Apply LoRAs if specified (10%)
@@ -399,15 +405,15 @@ class SDXLLoader:
             try:
                 sample, used_seed = comfy_bricks.common_ksampler(
                     self.model,
-                    current_seed,
+                    latent,
+                    positive,
+                    negative,
                     steps,
                     cfg_scale,
                     sampler,
                     scheduler,
-                    positive,
-                    negative,
-                    latent,
-                    sampling_callback=sampling_callback
+                    seed=current_seed,
+                    callback=sampling_callback
                 )
             except Exception as e:
                 return {'success': False, 'error': f'KSampler failed: {str(e)}'}
@@ -427,9 +433,9 @@ class SDXLLoader:
 
                 # Convert tensor to numpy array
                 if hasattr(decoded_image, 'cpu'):
-                    image_array = decoded_image.cpu().numpy()
+                    image_array = decoded_image.cpu().detach().numpy()
                 else:
-                    image_array = decoded_image.numpy()
+                    image_array = decoded_image.detach().numpy()
 
                 # Convert to PIL Image
                 image_array = (image_array * 255).astype(np.uint8)
@@ -662,9 +668,41 @@ class SDXLLoader:
 
     async def update_progress(self, progress: float, callback: Optional[Callable[[float], None]]):
         """Update progress and call callback if provided"""
-        self.progress = progress
+        # Ensure progress is within 0-100 range
+        self.progress = max(0.0, min(100.0, progress))
         if callback:
             try:
-                await callback(progress)
+                await callback(self.progress)
             except Exception as e:
                 log.warning("sdxl_progress_callback_error", {"error": str(e)})
+
+
+class SDXLPlugin(BasePlugin):
+    """
+    SDXL plugin for image generation
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.loader = SDXLLoader()
+
+    async def generate(
+        self,
+        task_id: int,
+        data: Dict[str, Any],
+        progress_callback: Optional[Callable[[float], None]] = None
+    ) -> PluginResult:
+        """Generate image using SDXL"""
+        return await self.loader.generate(task_id, data, progress_callback)
+
+    async def stop(self):
+        """Stop the generation process"""
+        if hasattr(self.loader, 'should_stop'):
+            self.loader.should_stop = True
+        self.should_stop = True
+
+    @classmethod
+    def get_plugin_info(cls) -> Dict[str, Any]:
+        """Get plugin information"""
+        loader = SDXLLoader()
+        return loader.get_plugin_info()
