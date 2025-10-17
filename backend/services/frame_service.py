@@ -162,26 +162,34 @@ class FrameService:
             return False
 
         # Find all variants of this frame by looking for frames with same project_id
-        # and similar path pattern (same base name)
+        # and same frame_id in the path
         import os
         from pathlib import Path
-        
+
         base_path = Path(base_frame.path)
         base_name = base_path.stem  # filename without extension
-        
-        # Extract the base identifier from the filename
-        # Format: frame_{project_id}_{timestamp}_v{variant_id}.png
-        # We want to match: frame_{project_id}_{timestamp}
-        base_parts = base_name.split('_v')[0]  # Remove variant suffix if present
-        
+
+        # Extract the frame_id from the filename
+        # Format: project_{project_id}_frame_{frame_id}_variant_{variant_id}.png
+        # We want to match: project_{project_id}_frame_{frame_id}
+        path_parts = base_name.split('_')
+        if len(path_parts) >= 4:
+            frame_id_part = path_parts[3]  # frame_id
+            project_id_part = path_parts[1]  # project_id
+            base_pattern = f"project_{project_id_part}_frame_{frame_id_part}"
+        else:
+            # Fallback to old format for backward compatibility
+            base_parts = base_name.split('_v')[0]
+            base_pattern = base_parts
+
         # Query all frames in the same project with matching base pattern
         query = """
-            SELECT id, path FROM frames 
+            SELECT id, path FROM frames
             WHERE project_id = ? AND path LIKE ?
         """
-        pattern = f"%{base_parts}%"  # Match base name pattern
+        pattern = f"%{base_pattern}%"  # Match base name pattern
         variant_rows = await self.db.fetch_all(query, (base_frame.project_id, pattern))
-        
+
         # Delete all variant files and database records
         deleted_count = 0
         for row in variant_rows:
@@ -221,16 +229,16 @@ class FrameService:
         from pathlib import Path
         base_path = Path(base_frame.path)
         base_name = base_path.stem.split('_v')[0]  # Remove variant suffix if present
-        
+
         query = """
             SELECT id, path, generator, project_id, variant_id, created_at, updated_at
-            FROM frames 
+            FROM frames
             WHERE project_id = ? AND path LIKE ?
             ORDER BY variant_id ASC
         """
         pattern = f"%{base_name}%"
         rows = await self.db.fetch_all(query, (base_frame.project_id, pattern))
-        
+
         variants = []
         for row in rows:
             variants.append(FrameResponse(
@@ -242,7 +250,7 @@ class FrameService:
                 created_at=row['created_at'],
                 updated_at=row['updated_at']
             ))
-        
+
         return variants
 
     async def update_selected_variant(self, frame_id: int, variant_id: int) -> Optional[FrameResponse]:
