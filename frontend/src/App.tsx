@@ -30,6 +30,10 @@ function App() {
   // Frames state
   const [frames, setFrames] = useState<Frame[]>([]);
 
+  // Variant state - track current variant for each frame
+  const [frameVariants, setFrameVariants] = useState<Map<number, Frame[]>>(new Map());
+  const [currentVariantIndex, setCurrentVariantIndex] = useState<number>(0);
+
   // Image keys for forcing reload (timestamp-based cache busting)
   const [imageKeys, setImageKeys] = useState<Map<number, number>>(new Map());
 
@@ -163,10 +167,34 @@ function App() {
       if (index >= 0 && index < frames.length) {
         setCurrentFrameIndex(index);
         saveCurrentFrameIndex(index);
+        setCurrentVariantIndex(0); // Reset variant when changing frames
       }
     },
     [frames.length, saveCurrentFrameIndex]
   );
+
+  // Handle variant change
+  const handleVariantChange = useCallback((variantIndex: number) => {
+    setCurrentVariantIndex(variantIndex);
+  }, []);
+
+  // Get current frame with selected variant
+  const getCurrentFrameWithVariant = useCallback(() => {
+    if (frames.length === 0 || currentFrameIndex >= frames.length) {
+      return null;
+    }
+    
+    const baseFrame = frames[currentFrameIndex];
+    const variants = frameVariants.get(baseFrame.project_id);
+    
+    if (!variants || variants.length === 0) {
+      return baseFrame;
+    }
+    
+    // Return the selected variant or the base frame if variant doesn't exist
+    const selectedVariant = variants.find(v => v.variant_id === currentVariantIndex);
+    return selectedVariant || variants[0];
+  }, [frames, currentFrameIndex, frameVariants, currentVariantIndex]);
 
   // Play/Pause toggle
   const handlePlayPause = useCallback(() => {
@@ -287,7 +315,34 @@ function App() {
       setLoadingFrames(true);
       try {
         const projectFrames = await framesAPI.getByProject(projectId);
-        setFrames(projectFrames);
+        
+        // Organize frames by variants (group frames with same base name)
+        const variantsMap = new Map<number, Frame[]>();
+        const baseFrames: Frame[] = [];
+        
+        projectFrames.forEach(frame => {
+          // Extract base frame ID from path (assume format: frame_{project_id}_{timestamp}_v{variant_id}.png)
+          const pathParts = frame.path.split('_');
+          const baseFrameId = parseInt(pathParts[1]); // project_id as base identifier
+          
+          if (!variantsMap.has(baseFrameId)) {
+            variantsMap.set(baseFrameId, []);
+          }
+          variantsMap.get(baseFrameId)!.push(frame);
+        });
+        
+        // Sort variants by variant_id and create base frames list
+        variantsMap.forEach((variants, baseId) => {
+          variants.sort((a, b) => a.variant_id - b.variant_id);
+          // Use the first variant (variant_id = 0) as the base frame
+          baseFrames.push(variants[0]);
+        });
+        
+        // Sort base frames by creation time
+        baseFrames.sort((a, b) => a.id - b.id);
+        
+        setFrames(baseFrames);
+        setFrameVariants(variantsMap);
 
         // Restore saved frame index if it's valid for this project
         const savedIndex =
@@ -296,17 +351,20 @@ function App() {
             : 0;
         const validIndex = Math.min(
           savedIndex,
-          Math.max(0, projectFrames.length - 1)
+          Math.max(0, baseFrames.length - 1)
         );
 
         setCurrentFrameIndex(validIndex);
+        setCurrentVariantIndex(0); // Reset variant index
         if (appState.currentProjectId === projectId) {
           saveCurrentFrameIndex(validIndex);
         }
       } catch (err) {
         console.error("Failed to load frames:", err);
         setFrames([]); // Clear frames on error
+        setFrameVariants(new Map());
         setCurrentFrameIndex(0);
+        setCurrentVariantIndex(0);
         saveCurrentFrameIndex(0);
       } finally {
         setLoadingFrames(false);
@@ -591,14 +649,26 @@ function App() {
   }, [currentProject]);
 
   // Get current frame URL with cache-busting timestamp
-  const currentFrameUrl = frames[currentFrameIndex]
-    ? (() => {
-        const baseUrl = getFrameImageUrl(frames[currentFrameIndex].path);
-        const frameId = frames[currentFrameIndex].id;
-        const timestamp = imageKeys.get(frameId);
-        return timestamp ? `${baseUrl}?t=${timestamp}` : baseUrl;
-      })()
-    : undefined;
+  const currentFrameUrl = (() => {
+    const currentFrame = getCurrentFrameWithVariant();
+    if (!currentFrame) return undefined;
+    
+    const baseUrl = getFrameImageUrl(currentFrame.path);
+    const frameId = currentFrame.id;
+    const timestamp = imageKeys.get(frameId);
+    return timestamp ? `${baseUrl}?t=${timestamp}` : baseUrl;
+  })();
+
+  // Get current frame variants count
+  const getCurrentFrameVariantsCount = useCallback(() => {
+    if (frames.length === 0 || currentFrameIndex >= frames.length) {
+      return 1;
+    }
+    
+    const baseFrame = frames[currentFrameIndex];
+    const variants = frameVariants.get(baseFrame.project_id);
+    return variants ? variants.length : 1;
+  }, [frames, currentFrameIndex, frameVariants]);
 
   return (
     <div className="app-container">
@@ -626,6 +696,9 @@ function App() {
           onFrameChange={handleFrameChange}
           onPlayPause={handlePlayPause}
           frameImageUrl={currentFrameUrl}
+          currentVariantIndex={currentVariantIndex}
+          totalVariants={getCurrentFrameVariantsCount()}
+          onVariantChange={handleVariantChange}
         />
       </div>
 

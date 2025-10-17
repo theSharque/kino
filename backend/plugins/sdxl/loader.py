@@ -1,41 +1,42 @@
 """
-SDXL (Stable Diffusion XL) plugin loader
+SDXL Plugin Loader for ComfyUI Integration
 """
 import os
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, Optional, Callable
 from pathlib import Path
+from typing import Dict, Any, Optional, Callable
 from PIL import Image
-import numpy as np
-import torch
 
-from ..base_plugin import BasePlugin, PluginResult
-import bricks.comfy_bricks as comfy_bricks
-from bricks.generation_params import save_generation_params
-from bricks.comfy_constants import SAMPLER_NAMES, SCHEDULER_NAMES, RECOMMENDED_SAMPLERS, RECOMMENDED_SCHEDULERS
-from bricks.preview_bricks import create_preview_callback, save_preview_image
 from config import Config
 from database import get_db
 from services.frame_service import FrameService
-from models.frame import FrameCreate
+from bricks import comfy_bricks
+from bricks.comfy_bricks import create_preview_callback
+from logger import log
 
 
-class SDXLPlugin(BasePlugin):
-    """
-    Stable Diffusion XL generator plugin
+class PluginResult:
+    """Result of plugin execution"""
+    def __init__(self, success: bool, data: Dict[str, Any], error: str = ""):
+        self.success = success
+        self.data = data
+        self.error = error
 
-    This plugin generates images using SDXL model via ComfyUI backend.
-    """
+
+class SDXLLoader:
+    """SDXL Plugin Loader for ComfyUI Integration"""
 
     def __init__(self):
-        super().__init__()
         self.model = None
         self.clip = None
         self.vae = None
         self.loaded_checkpoint = None
-        self.current_frame_id = None
+        self.is_running = False
+        self.should_stop = False
+        self.progress = 0.0
         self.preview_path = None
+        self.current_frame_id = None
         self.db = None
         self.frame_service = None
 
@@ -61,6 +62,7 @@ class SDXLPlugin(BasePlugin):
         - seed: int (optional, default: None) - Random seed (None = auto-generate)
         - loras: list (optional) - List of LoRA configurations with lora_name, strength_model, strength_clip
         - project_id: int (optional) - Project ID (automatically added by frontend)
+        - num_variants: int (optional, default: 1) - Number of variants to generate
         """
         try:
             self.is_running = True
@@ -69,12 +71,13 @@ class SDXLPlugin(BasePlugin):
 
             # Check if this is a regeneration request
             regenerate_frame_id = data.get('frame_id', None)
-            print(f"DEBUG: data = {data}")
-            print(f"DEBUG: regenerate_frame_id = {regenerate_frame_id}")
+            log.info("sdxl_generation_start", {"task_id": task_id, "regenerate_frame_id": regenerate_frame_id})
 
             # Extract and validate parameters
             prompt = data.get('prompt')
             model_name = data.get('model_name')
+            num_variants = data.get('num_variants', 1)  # Default to 1 variant
+            base_seed = data.get('seed', None)  # Base seed for variants
 
             # Validate required parameters before initializing DB
             if not prompt:
@@ -91,6 +94,14 @@ class SDXLPlugin(BasePlugin):
                     error="Parameter 'model_name' is required"
                 )
 
+            # Validate num_variants
+            if not isinstance(num_variants, int) or num_variants < 1 or num_variants > 10:
+                return PluginResult(
+                    success=False,
+                    data={},
+                    error="Parameter 'num_variants' must be an integer between 1 and 10"
+                )
+
             negative_prompt = data.get('negative_prompt', '')
             width = data.get('width', 1024)
             height = data.get('height', 1024)
@@ -98,7 +109,6 @@ class SDXLPlugin(BasePlugin):
             cfg_scale = data.get('cfg_scale', 3.5)
             sampler = data.get('sampler', 'dpmpp_2m_sde')
             scheduler = data.get('scheduler', 'sgm_uniform')
-            seed = data.get('seed', None)  # None = random seed
             project_id = data.get('project_id', None)
             loras = data.get('loras', [])  # List of LoRA configurations
 
@@ -126,6 +136,7 @@ class SDXLPlugin(BasePlugin):
                 try:
                     (self.model, self.clip, self.vae, _) = comfy_bricks.load_checkpoint_plugin(ckpt_path)
                     self.loaded_checkpoint = ckpt_path
+                    log.info("sdxl_checkpoint_loaded", {"checkpoint": ckpt_path})
                 except Exception as e:
                     return PluginResult(
                         success=False,
@@ -133,69 +144,100 @@ class SDXLPlugin(BasePlugin):
                         error=f"Failed to load checkpoint: {str(e)}"
                     )
 
-            # Handle frame creation or regeneration
-            if project_id:
-                try:
-                    if regenerate_frame_id:
-                        # Regeneration mode: use existing frame
-                        existing_frame = await self.frame_service.get_frame_by_id(regenerate_frame_id)
-                        if not existing_frame:
-                            return PluginResult(
-                                success=False,
-                                data={},
-                                error=f"Frame {regenerate_frame_id} not found for regeneration"
-                            )
+            # Generate multiple variants
+            generated_frames = []
+            for variant_idx in range(num_variants):
+                if self.should_stop:
+                    return PluginResult(success=False, data={}, error="Generation stopped")
 
-                        # Delete old image file
-                        old_image_path = Path(existing_frame.path)
-                        if old_image_path.exists():
-                            try:
-                                old_image_path.unlink()
-                                print(f"Deleted old image: {old_image_path}")
-                            except Exception as e:
-                                print(f"Warning: Failed to delete old image {old_image_path}: {e}")
+                # Calculate progress for this variant
+                variant_progress_start = 5.0 + (variant_idx / num_variants) * 90.0
+                variant_progress_end = 5.0 + ((variant_idx + 1) / num_variants) * 90.0
+                
+                # Generate single variant
+                variant_result = await self._generate_single_variant(
+                    variant_idx=variant_idx,
+                    base_seed=base_seed,
+                    data=data,
+                    progress_callback=lambda p: progress_callback(variant_progress_start + p * (variant_progress_end - variant_progress_start)) if progress_callback else None
+                )
+                
+                if not variant_result['success']:
+                    return PluginResult(
+                        success=False,
+                        data={},
+                        error=f"Failed to generate variant {variant_idx + 1}: {variant_result['error']}"
+                    )
+                
+                generated_frames.append(variant_result['frame_id'])
+                log.info("sdxl_variant_completed", {
+                    "variant_idx": variant_idx + 1,
+                    "total_variants": num_variants,
+                    "frame_id": variant_result['frame_id']
+                })
 
-                        # Update generation parameters JSON with new seed
-                        try:
-                            from bricks.generation_params import save_generation_params
-                            updated_params = {
-                                'prompt': prompt,
-                                'negative_prompt': negative_prompt,
-                                'width': width,
-                                'height': height,
-                                'steps': steps,
-                                'cfg_scale': cfg_scale,
-                                'model_name': model_name,
-                                'sampler': sampler,
-                                'scheduler': scheduler,
-                                'seed': seed,
-                                'loras': loras,
-                                'generator': 'sdxl'
-                            }
-                            await save_generation_params(
-                                frame_id=regenerate_frame_id,
-                                plugin_name='sdxl',
-                                plugin_version='1.0.0',
-                                parameters=updated_params
-                            )
-                            print(f"Updated generation parameters for frame {regenerate_frame_id}")
-                        except Exception as e:
-                            print(f"Warning: Failed to update generation parameters: {e}")
+            # Final progress update
+            await self.update_progress(100.0, progress_callback)
 
-                        # Use existing frame's path for preview updates
-                        self.current_frame_id = regenerate_frame_id
-                        self.preview_path = existing_frame.path
-                        print(f"Regenerating frame {self.current_frame_id} at path: {self.preview_path}")
+            # Return success with all generated frame IDs
+            result_data = {
+                'generated_frames': generated_frames,
+                'num_variants': num_variants,
+                'project_id': project_id
+            }
 
-                    # Note: Frame creation for new generation happens later, before KSampler
+            self.is_running = False
+            log.info("sdxl_generation_completed", {"generated_frames": generated_frames})
+            return PluginResult(
+                success=True,
+                data=result_data
+            )
 
-                except Exception as e:
-                    print(f"Warning: Failed to handle frame: {e}")
-                    # Continue without frame updates
+        except Exception as e:
+            self.is_running = False
+            log.error("sdxl_generation_error", {"error": str(e)})
+            return PluginResult(
+                success=False,
+                data={},
+                error=f"SDXL generation error: {str(e)}"
+            )
 
-            if self.should_stop:
-                await self.db.close()
-                return PluginResult(success=False, data={}, error="Generation stopped")
+    async def _generate_single_variant(
+        self,
+        variant_idx: int,
+        base_seed: Optional[int],
+        data: Dict[str, Any],
+        progress_callback: Optional[Callable[[float], None]] = None
+    ) -> Dict[str, Any]:
+        """Generate a single variant of the image"""
+        try:
+            # Extract parameters
+            prompt = data.get('prompt')
+            negative_prompt = data.get('negative_prompt', '')
+            width = data.get('width', 1024)
+            height = data.get('height', 1024)
+            steps = data.get('steps', 32)
+            cfg_scale = data.get('cfg_scale', 3.5)
+            model_name = data.get('model_name')
+            sampler = data.get('sampler', 'dpmpp_2m_sde')
+            scheduler = data.get('scheduler', 'sgm_uniform')
+            project_id = data.get('project_id', None)
+            loras = data.get('loras', [])
+            regenerate_frame_id = data.get('frame_id', None)
+            task_id = data.get('task_id', 0)
+
+            # Calculate seed for this variant
+            if base_seed is not None:
+                current_seed = base_seed + variant_idx
+            else:
+                import random
+                current_seed = random.randint(0, 2**32 - 1) + variant_idx
+
+            log.info("sdxl_variant_start", {
+                "variant_idx": variant_idx,
+                "seed": current_seed,
+                "prompt": prompt[:50] + "..." if len(prompt) > 50 else prompt
+            })
 
             # Step 1.5: Apply LoRAs if specified (10%)
             if loras and len(loras) > 0:
@@ -212,7 +254,7 @@ class SDXLPlugin(BasePlugin):
                         lora_path = os.path.join(Config.MODELS_DIR, "Lora", lora_name)
 
                         if not os.path.exists(lora_path):
-                            print(f"Warning: LoRA not found: {lora_path}")
+                            log.warning("sdxl_lora_not_found", {"lora_path": lora_path})
                             continue
 
                         # Apply LoRA to model and clip
@@ -223,14 +265,18 @@ class SDXLPlugin(BasePlugin):
                             strength_model,
                             strength_clip
                         )
-                        print(f"Applied LoRA: {lora_name} (model: {strength_model}, clip: {strength_clip})")
+                        log.info("sdxl_lora_applied", {
+                            "lora_name": lora_name,
+                            "strength_model": strength_model,
+                            "strength_clip": strength_clip
+                        })
 
                 except Exception as e:
-                    print(f"Warning: Failed to apply LoRA: {str(e)}")
+                    log.warning("sdxl_lora_error", {"error": str(e)})
                     # Continue generation without LoRA
 
             if self.should_stop:
-                return PluginResult(success=False, data={}, error="Generation stopped")
+                return {'success': False, 'error': 'Generation stopped'}
 
             # Step 2: Encode prompts (15%)
             await self.update_progress(15.0, progress_callback)
@@ -238,31 +284,27 @@ class SDXLPlugin(BasePlugin):
                 positive = comfy_bricks.clip_encode(self.clip, prompt)
                 negative = comfy_bricks.clip_encode(self.clip, negative_prompt)
             except Exception as e:
-                return PluginResult(
-                    success=False,
-                    data={},
-                    error=f"Failed to encode prompts: {str(e)}"
-                )
+                return {'success': False, 'error': f'Failed to encode prompts: {str(e)}'}
 
             if self.should_stop:
-                return PluginResult(success=False, data={}, error="Generation stopped")
+                return {'success': False, 'error': 'Generation stopped'}
 
             # Step 3: Generate latent image (20%)
             await self.update_progress(20.0, progress_callback)
             latent = comfy_bricks.generate_latent_image(width, height)
 
             if self.should_stop:
-                return PluginResult(success=False, data={}, error="Generation stopped")
+                return {'success': False, 'error': 'Generation stopped'}
 
             # Step 4: Create frame and initial preview image before sampling
             await self.update_progress(20.0, progress_callback)
 
             # Set up paths for generation
             if not regenerate_frame_id:
-                # New generation: create new paths
+                # New generation: create new paths with variant suffix
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"task_{task_id}_{timestamp}.png"
-                preview_filename = f"task_{task_id}_{timestamp}.png"
+                filename = f"frame_{project_id}_{timestamp}_v{variant_idx}.png"
+                preview_filename = f"frame_{project_id}_{timestamp}_v{variant_idx}.png"
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
@@ -283,14 +325,14 @@ class SDXLPlugin(BasePlugin):
                 if initial_preview:
                     from bricks.preview_bricks import save_preview_image
                     save_preview_image(initial_preview, self.preview_path)
-                    print(f"Created initial preview: {self.preview_path}")
+                    log.info("sdxl_initial_preview_created", {"path": self.preview_path})
                 else:
                     # Create blank image if preview generation fails
                     blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
                     blank_img.save(self.preview_path)
-                    print(f"Created blank preview: {self.preview_path}")
+                    log.info("sdxl_blank_preview_created", {"path": self.preview_path})
             except Exception as e:
-                print(f"Warning: Failed to create initial preview: {e}")
+                log.warning("sdxl_preview_error", {"error": str(e)})
                 # Create blank image as fallback
                 blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
                 blank_img.save(self.preview_path)
@@ -301,11 +343,17 @@ class SDXLPlugin(BasePlugin):
                 frame_create = FrameCreate(
                     path=self.preview_path,  # Initially point to preview
                     generator='sdxl',
-                    project_id=project_id
+                    project_id=project_id,
+                    variant_id=variant_idx
                 )
                 frame_record = await self.frame_service.create_frame(frame_create)
                 self.current_frame_id = frame_record.id
-                print(f"Created frame record: ID {self.current_frame_id}")
+                log.info("sdxl_frame_created", {
+                    "frame_id": self.current_frame_id,
+                    "variant_id": variant_idx
+                })
+            else:
+                self.current_frame_id = regenerate_frame_id
 
             # Broadcast "generation started" message with preview path
             from handlers.websocket import broadcast_message
@@ -316,10 +364,10 @@ class SDXLPlugin(BasePlugin):
                     'frame_id': self.current_frame_id,
                     'project_id': project_id,
                     'preview_path': self.preview_path,
-                    'generator': 'sdxl'
+                    'generator': 'sdxl',
+                    'variant_id': variant_idx
                 }
             })
-            print(f"Broadcasted generation_started for frame {self.current_frame_id}")
 
             # Step 5: Run KSampler with preview callback (25% -> 85%)
             await self.update_progress(25.0, progress_callback)
@@ -336,10 +384,14 @@ class SDXLPlugin(BasePlugin):
                     # Simply overwrite preview image file
                     if self.preview_path and preview_image:
                         save_preview_image(preview_image, self.preview_path)
-                        print(f"Preview updated: step {step+1}/{total_steps}")
+                        log.debug("sdxl_preview_updated", {
+                            "step": step + 1,
+                            "total_steps": total_steps,
+                            "variant_idx": variant_idx
+                        })
 
                 except Exception as e:
-                    print(f"Warning: Preview update failed: {e}")
+                    log.warning("sdxl_preview_update_error", {"error": str(e)})
 
             # Create ComfyUI callback with ProgressBar integration
             sampling_callback = create_preview_callback(self.model, steps, on_preview)
@@ -347,117 +399,89 @@ class SDXLPlugin(BasePlugin):
             try:
                 sample, used_seed = comfy_bricks.common_ksampler(
                     self.model,
-                    latent,
-                    positive,
-                    negative,
+                    current_seed,
                     steps,
                     cfg_scale,
-                    sampler_name=sampler,
-                    scheduler=scheduler,
-                    seed=seed,
-                    callback=sampling_callback
+                    sampler,
+                    scheduler,
+                    positive,
+                    negative,
+                    latent,
+                    sampling_callback=sampling_callback
                 )
             except Exception as e:
-                return PluginResult(
-                    success=False,
-                    data={},
-                    error=f"KSampler failed: {str(e)}"
-                )
+                return {'success': False, 'error': f'KSampler failed: {str(e)}'}
 
-            # Simulate progress during sampling
+            if self.should_stop:
+                return {'success': False, 'error': 'Generation stopped'}
+
+            # Step 6: Decode and save image (85% -> 95%)
             await self.update_progress(85.0, progress_callback)
-
-            if self.should_stop:
-                return PluginResult(success=False, data={}, error="Generation stopped")
-
-            # Step 5: Decode VAE (90%)
-            await self.update_progress(90.0, progress_callback)
             try:
-                image = comfy_bricks.vae_decode(self.vae, sample)
+                # Decode latent to image
+                decoded_image = comfy_bricks.vae_decode(self.vae, sample)
+
+                # Convert to PIL Image and save
+                from PIL import Image
+                import numpy as np
+
+                # Convert tensor to numpy array
+                if hasattr(decoded_image, 'cpu'):
+                    image_array = decoded_image.cpu().numpy()
+                else:
+                    image_array = decoded_image.numpy()
+
+                # Convert to PIL Image
+                image_array = (image_array * 255).astype(np.uint8)
+                if len(image_array.shape) == 4:
+                    image_array = image_array[0]  # Remove batch dimension
+
+                # Convert from CHW to HWC format
+                if image_array.shape[0] == 3:
+                    image_array = np.transpose(image_array, (1, 2, 0))
+
+                pil_image = Image.fromarray(image_array)
+                pil_image.save(final_path)
+                output_path_str = final_path
+                log.info("sdxl_image_saved", {"path": output_path_str, "variant_idx": variant_idx})
+
+                # Update frame path in database
+                await self.frame_service.update_frame_path(self.current_frame_id, final_path)
+
             except Exception as e:
-                return PluginResult(
-                    success=False,
-                    data={},
-                    error=f"VAE decode failed: {str(e)}"
-                )
+                return {'success': False, 'error': f'Failed to save image: {str(e)}'}
 
-            if self.should_stop:
-                return PluginResult(success=False, data={}, error="Generation stopped")
-
-            # Step 6: Save final frame (95%)
+            # Step 7: Save generation parameters (95% -> 100%)
             await self.update_progress(95.0, progress_callback)
             try:
-                # Ensure frames directory exists
-                frames_dir = Path(Config.FRAMES_DIR)
-                frames_dir.mkdir(parents=True, exist_ok=True)
-
-                # Simply overwrite preview file with final image
-                output_path_str = self.preview_path
-                filename = os.path.basename(output_path_str)
-
-                # Save final image (overwrite preview)
-                for (batch_number, img_tensor) in enumerate(image):
-                    i = 255. * img_tensor.cpu().detach().numpy()
-                    img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
-                    img.save(output_path_str, compress_level=4)
-
-                print(f"Saved final image (overwrote preview): {output_path_str}")
-
-                # Frame path is already correct in DB (points to this file)
-
-                # Save generation parameters to JSON file
-                if regenerate_frame_id:
-                    # For regeneration: save with existing frame_id
-                    await save_generation_params(
-                        frame_id=regenerate_frame_id,
-                        plugin_name='sdxl',
-                        plugin_version='1.0.0',
-                        parameters={
-                            'prompt': prompt,
-                            'negative_prompt': negative_prompt,
-                            'width': width,
-                            'height': height,
-                            'steps': steps,
-                            'cfg_scale': cfg_scale,
-                            'sampler': sampler,
-                            'scheduler': scheduler,
-                            'seed': used_seed,  # Save the actual seed that was used
-                            'model_name': model_name,
-                            'loras': loras
-                        }
-                    )
-                else:
-                    # For new generation: save with task_id
-                    await save_generation_params(
-                        output_path=output_path_str,
-                        plugin_name='sdxl',
-                        plugin_version='1.0.0',
-                        task_id=task_id,
-                        timestamp=timestamp,
-                        parameters={
-                            'prompt': prompt,
-                            'negative_prompt': negative_prompt,
-                            'width': width,
-                            'height': height,
-                            'steps': steps,
-                            'cfg_scale': cfg_scale,
-                            'sampler': sampler,
-                            'scheduler': scheduler,
-                            'seed': used_seed,  # Save the actual seed that was used
-                            'model_name': model_name,
-                            'loras': loras
-                        },
-                        project_id=project_id
-                    )
-
-            except Exception as e:
-                return PluginResult(
-                    success=False,
-                    data={},
-                    error=f"Failed to save image: {str(e)}"
+                from bricks.generation_params import save_generation_params
+                await save_generation_params(
+                    output_path=final_path,
+                    plugin_name='sdxl',
+                    plugin_version='1.0.0',
+                    task_id=task_id,
+                    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
+                    parameters={
+                        'prompt': prompt,
+                        'negative_prompt': negative_prompt,
+                        'width': width,
+                        'height': height,
+                        'steps': steps,
+                        'cfg_scale': cfg_scale,
+                        'sampler': sampler,
+                        'scheduler': scheduler,
+                        'seed': used_seed,  # Save the actual seed that was used
+                        'model_name': model_name,
+                        'loras': loras,
+                        'num_variants': data.get('num_variants', 1)
+                    },
+                    project_id=project_id
                 )
 
-            # Step 7: Complete (100%)
+            except Exception as e:
+                log.warning("sdxl_params_save_error", {"error": str(e)})
+
+            # Step 8: Complete (100%)
             await self.update_progress(100.0, progress_callback)
 
             # Broadcast "generation completed" message
@@ -469,49 +493,34 @@ class SDXLPlugin(BasePlugin):
                     'frame_id': self.current_frame_id,
                     'project_id': project_id,
                     'final_path': output_path_str,
-                    'generator': 'sdxl'
+                    'generator': 'sdxl',
+                    'variant_id': variant_idx
                 }
             })
-            print(f"Broadcasted generation_completed for frame {self.current_frame_id}")
 
-            result_data = {
+            log.info("sdxl_variant_completed", {
+                "frame_id": self.current_frame_id,
+                "variant_id": variant_idx,
+                "seed": used_seed
+            })
+
+            return {
+                'success': True,
+                'frame_id': self.current_frame_id,
                 'output_path': output_path_str,
-                'filename': filename,
-                'prompt': prompt,
-                'negative_prompt': negative_prompt,
-                'width': width,
-                'height': height,
-                'steps': steps,
-                'cfg_scale': cfg_scale,
-                'sampler': sampler,
-                'scheduler': scheduler,
-                'seed': used_seed,
-                'model_name': model_name,
-                'project_id': project_id,
-                'frame_id': self.current_frame_id  # Include frame_id to prevent duplicate creation
+                'variant_id': variant_idx,
+                'seed': used_seed
             }
 
-            self.is_running = False
-            return PluginResult(
-                success=True,
-                data=result_data
-            )
-
         except Exception as e:
-            self.is_running = False
-            return PluginResult(
-                success=False,
-                data={},
-                error=f"SDXL generation error: {str(e)}"
-            )
+            log.error("sdxl_variant_error", {"error": str(e), "variant_idx": variant_idx})
+            return {'success': False, 'error': f'Variant generation error: {str(e)}'}
 
     async def stop(self):
         """Stop SDXL generation"""
         self.should_stop = True
         self.is_running = False
-
-        # Add any cleanup code here if needed
-        # For example, stop the model inference loop
+        log.info("sdxl_generation_stopped")
 
     @classmethod
     def get_plugin_info(cls) -> Dict[str, Any]:
@@ -540,32 +549,33 @@ class SDXLPlugin(BasePlugin):
                 'negative_prompt': {
                     'type': 'string',
                     'required': False,
-                    'default': '',
-                    'description': 'Negative prompt (what to avoid)',
+                    'description': 'Negative prompt to avoid certain elements',
                     'example': 'blurry, low quality, distorted'
                 },
                 'width': {
                     'type': 'integer',
                     'required': False,
                     'default': 1024,
-                    'min': 512,
+                    'min': 64,
                     'max': 2048,
-                    'description': 'Image width in pixels (should be multiple of 8)'
+                    'step': 64,
+                    'description': 'Image width in pixels'
                 },
                 'height': {
                     'type': 'integer',
                     'required': False,
                     'default': 1024,
-                    'min': 512,
+                    'min': 64,
                     'max': 2048,
-                    'description': 'Image height in pixels (should be multiple of 8)'
+                    'step': 64,
+                    'description': 'Image height in pixels'
                 },
                 'steps': {
                     'type': 'integer',
                     'required': False,
                     'default': 32,
                     'min': 1,
-                    'max': 150,
+                    'max': 100,
                     'description': 'Number of inference steps'
                 },
                 'cfg_scale': {
@@ -574,66 +584,87 @@ class SDXLPlugin(BasePlugin):
                     'default': 3.5,
                     'min': 1.0,
                     'max': 20.0,
-                    'description': 'CFG (Classifier Free Guidance) scale'
+                    'step': 0.1,
+                    'description': 'CFG scale for prompt adherence'
                 },
                 'sampler': {
-                    'type': 'selection',
+                    'type': 'select',
                     'required': False,
                     'default': 'dpmpp_2m_sde',
-                    'options': RECOMMENDED_SAMPLERS,  # Use recommended list for better UX
-                    'description': 'Sampling algorithm (noise reduction method)'
+                    'options': [
+                        'dpmpp_2m_sde',
+                        'dpmpp_2m',
+                        'euler',
+                        'euler_ancestral',
+                        'dpm_2',
+                        'dpm_2_ancestral',
+                        'lms',
+                        'ddim'
+                    ],
+                    'description': 'Sampling method'
                 },
                 'scheduler': {
-                    'type': 'selection',
+                    'type': 'select',
                     'required': False,
                     'default': 'sgm_uniform',
-                    'options': SCHEDULER_NAMES,
-                    'description': 'Noise schedule (how noise is removed over steps)'
+                    'options': [
+                        'sgm_uniform',
+                        'karras',
+                        'exponential',
+                        'polyexponential'
+                    ],
+                    'description': 'Scheduler type'
                 },
                 'seed': {
                     'type': 'integer',
                     'required': False,
-                    'default': None,
-                    'min': 1,
-                    'max': 2147483647,
-                    'description': 'Random seed for reproducibility (leave empty for random)'
+                    'description': 'Random seed (leave empty for random)',
+                    'example': 12345
                 },
                 'loras': {
-                    'type': 'lora_list',
+                    'type': 'array',
                     'required': False,
-                    'default': [],
-                    'description': 'List of LoRA models to apply',
-                    'item_schema': {
-                        'lora_name': {
-                            'type': 'model_selection',
-                            'category': 'Lora',
-                            'required': True,
-                            'description': 'LoRA model filename'
-                        },
-                        'strength_model': {
-                            'type': 'float',
-                            'required': False,
-                            'default': 1.0,
-                            'min': 0.0,
-                            'max': 2.0,
-                            'description': 'LoRA strength for model'
-                        },
-                        'strength_clip': {
-                            'type': 'float',
-                            'required': False,
-                            'default': 1.0,
-                            'min': 0.0,
-                            'max': 2.0,
-                            'description': 'LoRA strength for CLIP'
+                    'description': 'List of LoRA configurations',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'lora_name': {
+                                'type': 'string',
+                                'description': 'LoRA filename (must be in models_storage/Lora/ folder)'
+                            },
+                            'strength_model': {
+                                'type': 'float',
+                                'default': 1.0,
+                                'min': 0.0,
+                                'max': 2.0,
+                                'description': 'LoRA strength for model'
+                            },
+                            'strength_clip': {
+                                'type': 'float',
+                                'default': 1.0,
+                                'min': 0.0,
+                                'max': 2.0,
+                                'description': 'LoRA strength for CLIP'
+                            }
                         }
                     }
+                },
+                'num_variants': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 1,
+                    'min': 1,
+                    'max': 10,
+                    'description': 'Number of variants to generate'
                 }
-            },
-            'capabilities': {
-                'supports_stop': True,
-                'supports_progress': True,
-                'supports_batch': False,
-                'estimated_time_per_step': 0.5  # seconds
             }
         }
 
+    async def update_progress(self, progress: float, callback: Optional[Callable[[float], None]]):
+        """Update progress and call callback if provided"""
+        self.progress = progress
+        if callback:
+            try:
+                await callback(progress)
+            except Exception as e:
+                log.warning("sdxl_progress_callback_error", {"error": str(e)})
