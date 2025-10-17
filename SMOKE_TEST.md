@@ -10,6 +10,42 @@ This document describes automated smoke tests to verify the core functionality o
 - Test image size: 512x512 pixels
 - Test steps: 5-20 steps (as specified per test)
 
+## Pre-Test Setup
+
+### Check and Stop Running Servers
+**Objective**: Ensure clean test environment by stopping any running servers
+
+**Steps**:
+1. Check for running backend processes:
+   ```bash
+   ps aux | grep "python.*main.py" | grep -v grep
+   ```
+2. Check for running frontend processes:
+   ```bash
+   ps aux | grep "vite\|npm.*dev" | grep -v grep
+   ```
+3. If backend is running, stop it:
+   ```bash
+   pkill -f "python.*main.py"
+   ```
+4. If frontend is running, stop it:
+   ```bash
+   pkill -f "vite\|npm.*dev"
+   ```
+5. Wait 2-3 seconds for processes to fully terminate
+6. Verify no servers are running:
+   ```bash
+   netstat -tulpn | grep :8000  # Backend port
+   netstat -tulpn | grep :5173  # Frontend port
+   ```
+
+**Expected Results**:
+- ✅ No backend processes running on port 8000
+- ✅ No frontend processes running on port 5173
+- ✅ Clean environment ready for testing
+
+---
+
 ## Test Cases
 
 ### Test 1: Application Startup
