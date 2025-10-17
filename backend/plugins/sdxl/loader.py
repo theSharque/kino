@@ -151,6 +151,10 @@ class SDXLLoader:
 
             # Generate multiple variants
             generated_frames = []
+            # Create common timestamp for all variants
+            from datetime import datetime
+            common_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
             for variant_idx in range(num_variants):
                 if self.should_stop:
                     return PluginResult(success=False, data={}, error="Generation stopped")
@@ -164,6 +168,7 @@ class SDXLLoader:
                     variant_idx=variant_idx,
                     base_seed=base_seed,
                     data=data,
+                    common_timestamp=common_timestamp,
                     progress_callback=lambda p: progress_callback(min(100.0, variant_progress_start + p * (variant_progress_end - variant_progress_start) / 100.0)) if progress_callback else None
                 )
 
@@ -212,6 +217,7 @@ class SDXLLoader:
         variant_idx: int,
         base_seed: Optional[int],
         data: Dict[str, Any],
+        common_timestamp: str,
         progress_callback: Optional[Callable[[float], None]] = None
     ) -> Dict[str, Any]:
         """Generate a single variant of the image"""
@@ -308,9 +314,8 @@ class SDXLLoader:
             # Set up paths for generation
             if not regenerate_frame_id:
                 # New generation: create new paths with variant suffix
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"frame_{project_id}_{timestamp}_v{variant_idx}.png"
-                preview_filename = f"frame_{project_id}_{timestamp}_v{variant_idx}.png"
+                filename = f"frame_{project_id}_{common_timestamp}_v{variant_idx}.png"
+                preview_filename = f"frame_{project_id}_{common_timestamp}_v{variant_idx}.png"
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
