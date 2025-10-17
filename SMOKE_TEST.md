@@ -62,9 +62,9 @@ This document describes automated smoke tests to verify the core functionality o
 **Objective**: Verify application starts correctly without errors
 
 **Steps**:
-1. Start backend server with log output to file:
+1. Activate backend virtual environment and start server with log output to file:
    ```bash
-   cd backend && python main.py > server.log 2>&1 &
+   cd backend && source venv/bin/activate && python main.py > server.log 2>&1 &
    ```
 2. Start frontend server with log output to file:
    ```bash
@@ -80,6 +80,10 @@ This document describes automated smoke tests to verify the core functionality o
    tail -20 frontend/frontend.log
    ```
 6. Open browser and navigate to frontend URL (typically `http://localhost:5173`)
+7. Check WebSocket connection in browser console:
+   - Open browser Developer Tools (F12)
+   - Check Console tab for WebSocket connection messages
+   - Look for: "WebSocket connected" or similar messages
 
 **Expected Results**:
 - ✅ Backend server starts without errors
@@ -174,8 +178,21 @@ This document describes automated smoke tests to verify the core functionality o
 2. Right-click on the frame in timeline
 3. Select "Delete Frame" from context menu
 4. Confirm deletion
-5. Check filesystem for remaining files
-6. Check database for remaining records
+5. Check filesystem for remaining files:
+   ```bash
+   ls -la backend/data/frames/ | grep frame_
+   ```
+6. Check database for remaining records:
+   ```bash
+   cd backend && source venv/bin/activate && python -c "
+   import sqlite3
+   conn = sqlite3.connect('data/kino.db')
+   cursor = conn.cursor()
+   cursor.execute('SELECT COUNT(*) FROM frames')
+   print(f'Remaining frames: {cursor.fetchone()[0]}')
+   conn.close()
+   "
+   ```
 
 **Expected Results**:
 - ✅ Frame is removed from timeline
@@ -195,8 +212,23 @@ This document describes automated smoke tests to verify the core functionality o
 3. Find the test project
 4. Click delete button for the project
 5. Confirm deletion
-6. Check filesystem for remaining files
-7. Check database for remaining records
+6. Check filesystem for remaining files:
+   ```bash
+   ls -la backend/data/frames/ | grep frame_
+   ```
+7. Check database for remaining records:
+   ```bash
+   cd backend && source venv/bin/activate && python -c "
+   import sqlite3
+   conn = sqlite3.connect('data/kino.db')
+   cursor = conn.cursor()
+   cursor.execute('SELECT COUNT(*) FROM projects')
+   print(f'Remaining projects: {cursor.fetchone()[0]}')
+   cursor.execute('SELECT COUNT(*) FROM frames')
+   print(f'Remaining frames: {cursor.fetchone()[0]}')
+   conn.close()
+   "
+   ```
 
 **Expected Results**:
 - ✅ Project is removed from projects list
@@ -227,8 +259,7 @@ Monitor `frontend/frontend.log` for these log patterns:
 
 ### File System Verification
 Check these directories:
-- `backend/data/frames/` - Should contain generated images
-- `backend/data/frames/` - Should contain JSON parameter files
+- `backend/data/frames/` - Should contain generated images and JSON parameter files
 - Database: `backend/data/kino.db` - Should contain project and frame records
 
 ### Error Indicators
