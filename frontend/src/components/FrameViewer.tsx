@@ -9,6 +9,10 @@ interface FrameViewerProps {
   onFrameChange: (index: number) => void;
   onPlayPause: () => void;
   frameImageUrl?: string;
+  // Variant support
+  currentVariantIndex?: number;
+  totalVariants?: number;
+  onVariantChange?: (variantIndex: number) => void;
 }
 
 export const FrameViewer = ({
@@ -18,7 +22,10 @@ export const FrameViewer = ({
   isPlaying,
   onFrameChange,
   onPlayPause,
-  frameImageUrl
+  frameImageUrl,
+  currentVariantIndex = 0,
+  totalVariants = 1,
+  onVariantChange
 }: FrameViewerProps) => {
   // Navigate to first frame
   const handleFirst = useCallback(() => {
@@ -44,6 +51,19 @@ export const FrameViewer = ({
     onFrameChange(totalFrames - 1);
   }, [totalFrames, onFrameChange]);
 
+  // Variant navigation handlers
+  const handlePreviousVariant = useCallback(() => {
+    if (onVariantChange && currentVariantIndex > 0) {
+      onVariantChange(currentVariantIndex - 1);
+    }
+  }, [currentVariantIndex, onVariantChange]);
+
+  const handleNextVariant = useCallback(() => {
+    if (onVariantChange && currentVariantIndex < totalVariants - 1) {
+      onVariantChange(currentVariantIndex + 1);
+    }
+  }, [currentVariantIndex, totalVariants, onVariantChange]);
+
   return (
     <div className="frame-viewer">
       {/* Main frame display area */}
@@ -58,6 +78,33 @@ export const FrameViewer = ({
           <div className="frame-placeholder">
             <p>No frame selected</p>
             <p className="frame-info">Frame {currentFrameIndex + 1} of {totalFrames}</p>
+          </div>
+        )}
+        
+        {/* Variant controls overlay */}
+        {totalVariants > 1 && onVariantChange && (
+          <div className="variant-controls">
+            <button
+              onClick={handlePreviousVariant}
+              disabled={currentVariantIndex === 0}
+              className="variant-button"
+              title="Previous variant"
+            >
+              ◀
+            </button>
+            
+            <div className="variant-counter">
+              Variant {currentVariantIndex + 1} / {totalVariants}
+            </div>
+            
+            <button
+              onClick={handleNextVariant}
+              disabled={currentVariantIndex >= totalVariants - 1}
+              className="variant-button"
+              title="Next variant"
+            >
+              ▶
+            </button>
           </div>
         )}
       </div>

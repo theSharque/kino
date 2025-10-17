@@ -104,3 +104,50 @@
   color: #888;
 }
 
+/* Variant controls */
+.variant-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.variant-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.variant-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.variant-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.variant-counter {
+  font-size: 0.85rem;
+  color: #ccc;
+  font-family: monospace;
+  white-space: nowrap;
+}
+

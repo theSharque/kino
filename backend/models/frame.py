@@ -11,6 +11,7 @@ class FrameBase(BaseModel):
     path: str = Field(..., min_length=1, max_length=500, description="Path to frame file")
     generator: str = Field(..., min_length=1, max_length=255, description="Generator information")
     project_id: int = Field(..., gt=0, description="Project ID this frame belongs to")
+    variant_id: int = Field(default=0, ge=0, description="Variant ID for this frame")
 
     @field_validator('path')
     @classmethod
@@ -39,6 +40,7 @@ class FrameUpdate(BaseModel):
     path: Optional[str] = Field(None, min_length=1, max_length=500)
     generator: Optional[str] = Field(None, min_length=1, max_length=255)
     project_id: Optional[int] = Field(None, gt=0)
+    variant_id: Optional[int] = Field(None, ge=0)
 
 
 class FrameResponse(FrameBase):

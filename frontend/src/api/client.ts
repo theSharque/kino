@@ -34,6 +34,7 @@ export interface Frame {
   path: string;
   generator: string;
   project_id: number;
+  variant_id: number;
   created_at: string;
   updated_at: string;
 }

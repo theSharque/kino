@@ -53,6 +53,7 @@ class Database:
                     path TEXT NOT NULL,
                     generator TEXT NOT NULL,
                     project_id INTEGER NOT NULL,
+                    variant_id INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
@@ -63,6 +64,26 @@ class Database:
             await cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_frames_project_id ON frames (project_id)
             """)
+
+            # Create index for variant queries
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_frames_project_variant ON frames (project_id, variant_id)
+            """)
+
+            # Migration: Add variant_id column if it doesn't exist
+            await cursor.execute("""
+                PRAGMA table_info(frames)
+            """)
+            columns = await cursor.fetchall()
+            column_names = [col[1] for col in columns]
+            
+            if 'variant_id' not in column_names:
+                await cursor.execute("""
+                    ALTER TABLE frames ADD COLUMN variant_id INTEGER NOT NULL DEFAULT 0
+                """)
+                await cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_frames_project_variant ON frames (project_id, variant_id)
+                """)
 
             # Tasks table (for generator system)
             await cursor.execute("""

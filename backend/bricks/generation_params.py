@@ -88,6 +88,7 @@ async def save_generation_params(
         'plugin': plugin_name,
         'plugin_version': plugin_version,
         'parameters': parameters,
+        'variants': parameters.get('num_variants', 1),
         'output': {
             'filename': img_path.name,
             'path': str(img_path)
