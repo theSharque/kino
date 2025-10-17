@@ -31,7 +31,9 @@ function App() {
   const [frames, setFrames] = useState<Frame[]>([]);
 
   // Variant state - track current variant for each frame
-  const [frameVariants, setFrameVariants] = useState<Map<number, Frame[]>>(new Map());
+  const [frameVariants, setFrameVariants] = useState<Map<number, Frame[]>>(
+    new Map()
+  );
   const [currentVariantIndex, setCurrentVariantIndex] = useState<number>(0);
 
   // Image keys for forcing reload (timestamp-based cache busting)
@@ -183,16 +185,18 @@ function App() {
     if (frames.length === 0 || currentFrameIndex >= frames.length) {
       return null;
     }
-    
+
     const baseFrame = frames[currentFrameIndex];
     const variants = frameVariants.get(baseFrame.project_id);
-    
+
     if (!variants || variants.length === 0) {
       return baseFrame;
     }
-    
+
     // Return the selected variant or the base frame if variant doesn't exist
-    const selectedVariant = variants.find(v => v.variant_id === currentVariantIndex);
+    const selectedVariant = variants.find(
+      (v) => v.variant_id === currentVariantIndex
+    );
     return selectedVariant || variants[0];
   }, [frames, currentFrameIndex, frameVariants, currentVariantIndex]);
 
@@ -315,32 +319,32 @@ function App() {
       setLoadingFrames(true);
       try {
         const projectFrames = await framesAPI.getByProject(projectId);
-        
+
         // Organize frames by variants (group frames with same base name)
         const variantsMap = new Map<number, Frame[]>();
         const baseFrames: Frame[] = [];
-        
-        projectFrames.forEach(frame => {
+
+        projectFrames.forEach((frame) => {
           // Extract base frame ID from path (assume format: frame_{project_id}_{timestamp}_v{variant_id}.png)
-          const pathParts = frame.path.split('_');
+          const pathParts = frame.path.split("_");
           const baseFrameId = parseInt(pathParts[1]); // project_id as base identifier
-          
+
           if (!variantsMap.has(baseFrameId)) {
             variantsMap.set(baseFrameId, []);
           }
           variantsMap.get(baseFrameId)!.push(frame);
         });
-        
+
         // Sort variants by variant_id and create base frames list
         variantsMap.forEach((variants, baseId) => {
           variants.sort((a, b) => a.variant_id - b.variant_id);
           // Use the first variant (variant_id = 0) as the base frame
           baseFrames.push(variants[0]);
         });
-        
+
         // Sort base frames by creation time
         baseFrames.sort((a, b) => a.id - b.id);
-        
+
         setFrames(baseFrames);
         setFrameVariants(variantsMap);
 
@@ -527,7 +531,7 @@ function App() {
             : `Generate frame for ${currentProject.name}`,
           type: pluginName,
           data: {
-            ...parameters,
+            parameters: parameters, // ← Параметры должны быть в data.parameters
             project_id: currentProject.id,
             ...(regenerateFrameId && { frame_id: regenerateFrameId }),
           },
@@ -652,7 +656,7 @@ function App() {
   const currentFrameUrl = (() => {
     const currentFrame = getCurrentFrameWithVariant();
     if (!currentFrame) return undefined;
-    
+
     const baseUrl = getFrameImageUrl(currentFrame.path);
     const frameId = currentFrame.id;
     const timestamp = imageKeys.get(frameId);
@@ -664,7 +668,7 @@ function App() {
     if (frames.length === 0 || currentFrameIndex >= frames.length) {
       return 1;
     }
-    
+
     const baseFrame = frames[currentFrameIndex];
     const variants = frameVariants.get(baseFrame.project_id);
     return variants ? variants.length : 1;
