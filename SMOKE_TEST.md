@@ -2,6 +2,10 @@
 
 This document describes automated smoke tests to verify the core functionality of the Kino application.
 
+## ⚠️ Important: Sequential Execution Required
+
+**These smoke tests MUST be executed in strict sequential order.** Each test builds upon the previous one, and skipping or reordering tests will cause failures. Do not run tests in parallel or out of sequence.
+
 ## Test Environment Setup
 
 - Backend: Python aiohttp server
@@ -47,6 +51,12 @@ This document describes automated smoke tests to verify the core functionality o
 ---
 
 ## Test Cases
+
+> **Note**: Tests are interdependent and must be run in order:
+> - Test 1: Starts servers (required for all subsequent tests)
+> - Test 2: Creates project (required for Tests 3-6)
+> - Tests 3-4: Generate frames (required for Tests 5-6)
+> - Tests 5-6: Test deletion functionality
 
 ### Test 1: Application Startup
 **Objective**: Verify application starts correctly without errors
