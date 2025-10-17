@@ -151,9 +151,7 @@ class SDXLLoader:
 
             # Generate multiple variants
             generated_frames = []
-            # Create common timestamp for all variants
-            from datetime import datetime
-            common_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            base_frame_id = None  # Will be set by first variant
 
             for variant_idx in range(num_variants):
                 if self.should_stop:
@@ -168,7 +166,7 @@ class SDXLLoader:
                     variant_idx=variant_idx,
                     base_seed=base_seed,
                     data=data,
-                    common_timestamp=common_timestamp,
+                    base_frame_id=base_frame_id,  # Pass base_frame_id to reuse for variants
                     progress_callback=lambda p: progress_callback(min(100.0, variant_progress_start + p * (variant_progress_end - variant_progress_start) / 100.0)) if progress_callback else None
                 )
 
@@ -179,11 +177,16 @@ class SDXLLoader:
                         error=f"Failed to generate variant {variant_idx + 1}: {variant_result['error']}"
                     )
 
+                # Set base_frame_id from first variant
+                if base_frame_id is None:
+                    base_frame_id = variant_result['frame_id']
+
                 generated_frames.append(variant_result['frame_id'])
                 log.info("sdxl_variant_completed", {
                     "variant_idx": variant_idx + 1,
                     "total_variants": num_variants,
-                    "frame_id": variant_result['frame_id']
+                    "frame_id": variant_result['frame_id'],
+                    "base_frame_id": base_frame_id
                 })
 
             # Final progress update
@@ -217,7 +220,7 @@ class SDXLLoader:
         variant_idx: int,
         base_seed: Optional[int],
         data: Dict[str, Any],
-        common_timestamp: str,
+        base_frame_id: Optional[int] = None,
         progress_callback: Optional[Callable[[float], None]] = None
     ) -> Dict[str, Any]:
         """Generate a single variant of the image"""
@@ -308,24 +311,62 @@ class SDXLLoader:
             if self.should_stop:
                 return {'success': False, 'error': 'Generation stopped'}
 
-            # Step 4: Create frame and initial preview image before sampling
-            await self.update_progress(20.0, progress_callback)
+            # Step 4: Create frame record first to get frame_id for naming
+            await self.update_progress(15.0, progress_callback)
 
             # Set up paths for generation
             if not regenerate_frame_id:
-                # New generation: create new paths with variant suffix
-                filename = f"frame_{project_id}_{common_timestamp}_v{variant_idx}.png"
-                preview_filename = f"frame_{project_id}_{common_timestamp}_v{variant_idx}.png"
+                # New generation: create frame record first to get frame_id
+                from models.frame import FrameCreate
+
+                if base_frame_id is None:
+                    # First variant: create new frame and get frame_id
+                    temp_path = f"temp_frame_{project_id}_{variant_idx}.png"
+
+                    frame_create = FrameCreate(
+                        path=temp_path,  # Temporary path
+                        generator='sdxl',
+                        project_id=project_id,
+                        variant_id=variant_idx
+                    )
+
+                    created_frame = await self.frame_service.create_frame(frame_create)
+                    frame_id = created_frame.id
+                else:
+                    # Subsequent variants: reuse base_frame_id but create new record
+                    temp_path = f"temp_frame_{project_id}_{variant_idx}.png"
+
+                    frame_create = FrameCreate(
+                        path=temp_path,  # Temporary path
+                        generator='sdxl',
+                        project_id=project_id,
+                        variant_id=variant_idx
+                    )
+
+                    created_frame = await self.frame_service.create_frame(frame_create)
+                    frame_id = created_frame.id  # This will be different, but we'll use base_frame_id for naming
+
+                # Use base_frame_id for naming (or frame_id if it's the first variant)
+                naming_frame_id = base_frame_id if base_frame_id is not None else frame_id
+                filename = f"project_{project_id}_frame_{naming_frame_id}_variant_{variant_idx}.png"
+                preview_filename = f"project_{project_id}_frame_{naming_frame_id}_variant_{variant_idx}.png"
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
                 self.preview_path = str(frames_dir / preview_filename)
                 final_path = str(frames_dir / filename)
+
+                # Update frame path with correct path
+                from models.frame import FrameUpdate
+                await self.frame_service.update_frame(frame_id, FrameUpdate(
+                    path=self.preview_path
+                ))
             else:
                 # Regeneration: use existing frame's path
                 existing_frame = await self.frame_service.get_frame_by_id(regenerate_frame_id)
                 final_path = existing_frame.path
                 self.preview_path = final_path  # Same path for both preview and final
+                frame_id = regenerate_frame_id
 
             # Create initial preview from latent (blank or noise pattern)
             try:
@@ -348,23 +389,12 @@ class SDXLLoader:
                 blank_img = Image.new('RGB', (width, height), color=(32, 32, 32))
                 blank_img.save(self.preview_path)
 
-            # Create frame record in database (only if not regenerating)
-            if not regenerate_frame_id:
-                from models.frame import FrameCreate
-                frame_create = FrameCreate(
-                    path=self.preview_path,  # Initially point to preview
-                    generator='sdxl',
-                    project_id=project_id,
-                    variant_id=variant_idx
-                )
-                frame_record = await self.frame_service.create_frame(frame_create)
-                self.current_frame_id = frame_record.id
-                log.info("sdxl_frame_created", {
-                    "frame_id": self.current_frame_id,
-                    "variant_id": variant_idx
-                })
-            else:
-                self.current_frame_id = regenerate_frame_id
+            # Set current frame ID for logging and WebSocket
+            self.current_frame_id = frame_id
+            log.info("sdxl_frame_created", {
+                "frame_id": self.current_frame_id,
+                "variant_id": variant_idx
+            })
 
             # Broadcast "generation started" message with preview path
             from handlers.websocket import broadcast_message
@@ -471,7 +501,7 @@ class SDXLLoader:
                     plugin_name='sdxl',
                     plugin_version='1.0.0',
                     task_id=task_id,
-                    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
+                    timestamp=None,  # No timestamp needed with new naming
                     parameters={
                         'prompt': prompt,
                         'negative_prompt': negative_prompt,
@@ -517,7 +547,7 @@ class SDXLLoader:
 
             return {
                 'success': True,
-                'frame_id': self.current_frame_id,
+                'frame_id': naming_frame_id if not regenerate_frame_id else frame_id,  # Return naming frame_id for grouping
                 'output_path': output_path_str,
                 'variant_id': variant_idx,
                 'seed': used_seed

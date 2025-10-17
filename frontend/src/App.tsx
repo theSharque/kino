@@ -31,7 +31,7 @@ function App() {
   const [frames, setFrames] = useState<Frame[]>([]);
 
   // Variant state - track current variant for each frame
-  const [frameVariants, setFrameVariants] = useState<Map<number, Frame[]>>(
+  const [frameVariants, setFrameVariants] = useState<Map<string, Frame[]>>(
     new Map()
   );
   const [currentVariantIndex, setCurrentVariantIndex] = useState<number>(0);
@@ -187,7 +187,11 @@ function App() {
     }
 
     const baseFrame = frames[currentFrameIndex];
-    const variants = frameVariants.get(baseFrame.project_id);
+    // Extract naming_frame_id from path to find variants
+    const pathParts = baseFrame.path.split("_");
+    const namingFrameId = pathParts[3]; // naming_frame_id from path
+    const baseFrameId = `${pathParts[1]}_${namingFrameId}`;
+    const variants = frameVariants.get(baseFrameId);
 
     if (!variants || variants.length === 0) {
       return baseFrame;
@@ -321,13 +325,15 @@ function App() {
         const projectFrames = await framesAPI.getByProject(projectId);
 
         // Organize frames by variants (group frames with same base name)
-        const variantsMap = new Map<number, Frame[]>();
+        const variantsMap = new Map<string, Frame[]>();
         const baseFrames: Frame[] = [];
 
         projectFrames.forEach((frame) => {
-          // Extract base frame ID from path (assume format: frame_{project_id}_{timestamp}_v{variant_id}.png)
+          // Extract base frame ID from path (assume format: project_{project_id}_frame_{frame_id}_variant_{variant_id}.png)
           const pathParts = frame.path.split("_");
-          const baseFrameId = parseInt(pathParts[1]); // project_id as base identifier
+          // Use naming_frame_id from path as base identifier for grouping variants of the same generation
+          const namingFrameId = pathParts[3]; // naming_frame_id part from path
+          const baseFrameId = `${pathParts[1]}_${namingFrameId}`; // project_id + naming_frame_id as base identifier
 
           if (!variantsMap.has(baseFrameId)) {
             variantsMap.set(baseFrameId, []);
@@ -670,7 +676,11 @@ function App() {
     }
 
     const baseFrame = frames[currentFrameIndex];
-    const variants = frameVariants.get(baseFrame.project_id);
+    // Extract naming_frame_id from path to find variants
+    const pathParts = baseFrame.path.split("_");
+    const namingFrameId = pathParts[3]; // naming_frame_id from path
+    const baseFrameId = `${pathParts[1]}_${namingFrameId}`;
+    const variants = frameVariants.get(baseFrameId);
     return variants ? variants.length : 1;
   }, [frames, currentFrameIndex, frameVariants]);
 
