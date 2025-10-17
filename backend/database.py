@@ -76,7 +76,7 @@ class Database:
             """)
             columns = await cursor.fetchall()
             column_names = [col[1] for col in columns]
-            
+
             if 'variant_id' not in column_names:
                 await cursor.execute("""
                     ALTER TABLE frames ADD COLUMN variant_id INTEGER NOT NULL DEFAULT 0

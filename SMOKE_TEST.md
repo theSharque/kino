@@ -104,7 +104,8 @@ This document describes automated smoke tests to verify the core functionality o
 2. Click "New Project" button
 3. Enter project name (e.g., "Smoke Test Project")
 4. Set project dimensions to 512x512
-5. Click "Create Project"
+5. Set fps to 24
+6. Click "Create Project"
 
 **Expected Results**:
 - ✅ New project appears in projects list

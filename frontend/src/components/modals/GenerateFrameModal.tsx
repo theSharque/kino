@@ -129,7 +129,9 @@ export const GenerateFrameModal = ({
       ) {
         defaultValue = defaultValue + 1;
         console.log(
-          `Auto-incremented seed from ${(defaultValue as number) - 1} to ${defaultValue}`
+          `Auto-incremented seed from ${
+            (defaultValue as number) - 1
+          } to ${defaultValue}`
         );
       }
 
@@ -360,7 +362,8 @@ export const GenerateFrameModal = ({
                         {getDefaultValue("height", heightInfo) !== undefined &&
                           getDefaultValue("height", heightInfo) !== null && (
                             <span className="field-default">
-                              Default: {String(getDefaultValue("height", heightInfo))}
+                              Default:{" "}
+                              {String(getDefaultValue("height", heightInfo))}
                               {projectHeight && " (from project)"}
                             </span>
                           )}
@@ -415,7 +418,9 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={String(parameters[paramName] || param.default || "")}
+                      value={String(
+                        parameters[paramName] || param.default || ""
+                      )}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
