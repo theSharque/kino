@@ -60,7 +60,7 @@ Rules for AI Assistance
 - Test new endpoints with curl; keep changes minimal and consistent.
 
 Smoke Tests Protocol
-- When user requests "Прогони ка смок-тесты" (Run smoke tests), follow /qs/kino/SMOKE_TEST.md strictly and sequentially.
+- When user asks to run smoke tests (in any form), follow /qs/kino/SMOKE_TEST.md strictly and sequentially.
 - Execute in order: Pre-Test Setup → Test 1 (start servers) → Test 2 (create project) → Test 3 (single frame) → Test 4 (5 variants) → Test 5 (delete frame) → Test 6 (delete project) → Post-Test Cleanup.
 - Use specific commands from SMOKE_TEST.md: pkill for stopping servers, source venv/bin/activate for backend, monitor logs in backend/server.log and frontend/frontend.log.
 - All tests are interdependent and must be run in sequence; do not skip or reorder.
