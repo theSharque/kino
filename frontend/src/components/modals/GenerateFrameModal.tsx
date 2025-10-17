@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Modal } from "../Modal";
 import type { PluginInfo, ModelInfo } from "../../api/client";
 import { modelsAPI } from "../../api/client";
 import { LoraListField } from "./LoraListField";
 import "./GenerateFrameModal.css";
+
+interface LoraItem {
+  lora_name: string;
+  strength_model: number;
+  strength_clip: number;
+}
 
 interface GenerateFrameModalProps {
   isOpen: boolean;
@@ -12,9 +18,9 @@ interface GenerateFrameModalProps {
   projectId: number | null;
   projectWidth?: number;
   projectHeight?: number;
-  initialParams?: Record<string, any> | null;
+  initialParams?: Record<string, unknown> | null;
   regenerateFrameId?: number | null;
-  onGenerate: (pluginName: string, parameters: Record<string, any>) => void;
+  onGenerate: (pluginName: string, parameters: Record<string, unknown>) => void;
 }
 
 export const GenerateFrameModal = ({
@@ -28,7 +34,7 @@ export const GenerateFrameModal = ({
   regenerateFrameId,
   onGenerate,
 }: GenerateFrameModalProps) => {
-  const [parameters, setParameters] = useState<Record<string, any>>({});
+  const [parameters, setParameters] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [modelsByCategory, setModelsByCategory] = useState<
     Record<string, ModelInfo[]>
@@ -38,25 +44,28 @@ export const GenerateFrameModal = ({
   );
 
   // Get default value for a parameter (with project overrides for width/height and initialParams)
-  const getDefaultValue = (paramName: string, param: any): any => {
-    // First priority: initial params (from regenerate)
-    if (initialParams && paramName in initialParams) {
-      console.log(
-        `Using initial param for ${paramName}:`,
-        initialParams[paramName]
-      );
-      return initialParams[paramName];
-    }
-    // Second priority: project dimensions for width/height
-    if (paramName === "width" && projectWidth) {
-      return projectWidth;
-    }
-    if (paramName === "height" && projectHeight) {
-      return projectHeight;
-    }
-    // Last priority: plugin default
-    return param.default;
-  };
+  const getDefaultValue = useCallback(
+    (paramName: string, param: unknown): unknown => {
+      // First priority: initial params (from regenerate)
+      if (initialParams && paramName in initialParams) {
+        console.log(
+          `Using initial param for ${paramName}:`,
+          initialParams[paramName]
+        );
+        return initialParams[paramName];
+      }
+      // Second priority: project dimensions for width/height
+      if (paramName === "width" && projectWidth) {
+        return projectWidth;
+      }
+      if (paramName === "height" && projectHeight) {
+        return projectHeight;
+      }
+      // Last priority: plugin default
+      return (param as { default?: unknown }).default;
+    },
+    [initialParams, projectWidth, projectHeight]
+  );
 
   // Load models for model_selection type parameters
   useEffect(() => {
@@ -93,7 +102,7 @@ export const GenerateFrameModal = ({
     };
 
     loadModels();
-  }, [isOpen, plugin]);
+  }, [isOpen, plugin, modelsByCategory, parameters]);
 
   // Initialize parameters from initialParams (for regenerate)
   useEffect(() => {
@@ -105,7 +114,7 @@ export const GenerateFrameModal = ({
     console.log("Regenerate frame ID:", regenerateFrameId);
 
     // Initialize with defaults or initialParams
-    const initParams: Record<string, any> = {};
+    const initParams: Record<string, unknown> = {};
 
     Object.entries(plugin.parameters).forEach(([paramName, param]) => {
       let defaultValue = getDefaultValue(paramName, param);
@@ -115,11 +124,12 @@ export const GenerateFrameModal = ({
         regenerateFrameId &&
         paramName === "seed" &&
         defaultValue !== null &&
-        defaultValue !== undefined
+        defaultValue !== undefined &&
+        typeof defaultValue === "number"
       ) {
         defaultValue = defaultValue + 1;
         console.log(
-          `Auto-incremented seed from ${defaultValue - 1} to ${defaultValue}`
+          `Auto-incremented seed from ${(defaultValue as number) - 1} to ${defaultValue}`
         );
       }
 
@@ -137,9 +147,10 @@ export const GenerateFrameModal = ({
     projectWidth,
     projectHeight,
     regenerateFrameId,
+    getDefaultValue,
   ]);
 
-  const handleInputChange = (paramName: string, value: any) => {
+  const handleInputChange = (paramName: string, value: unknown) => {
     setParameters((prev) => ({
       ...prev,
       [paramName]: value,
@@ -204,7 +215,7 @@ export const GenerateFrameModal = ({
     }
 
     // Prepare parameters with defaults
-    const finalParameters: Record<string, any> = { ...parameters };
+    const finalParameters: Record<string, unknown> = { ...parameters };
 
     // Add defaults for missing optional parameters
     Object.entries(plugin.parameters).forEach(([paramName, param]) => {
@@ -216,13 +227,18 @@ export const GenerateFrameModal = ({
       }
       // Convert to proper types
       if (param.type === "integer" && finalParameters[paramName]) {
-        finalParameters[paramName] = parseInt(finalParameters[paramName], 10);
+        finalParameters[paramName] = parseInt(
+          String(finalParameters[paramName]),
+          10
+        );
       }
       if (
         (param.type === "number" || param.type === "float") &&
         finalParameters[paramName]
       ) {
-        finalParameters[paramName] = parseFloat(finalParameters[paramName]);
+        finalParameters[paramName] = parseFloat(
+          String(finalParameters[paramName])
+        );
       }
     });
 
@@ -263,7 +279,7 @@ export const GenerateFrameModal = ({
 
         <div className="form-fields">
           {Object.entries(plugin.parameters).map(
-            ([paramName, param], index, array) => {
+            ([paramName, param], _, array) => {
               // Skip height if we're grouping it with width
               if (paramName === "height") {
                 const widthExists = array.some(([name]) => name === "width");
@@ -277,7 +293,7 @@ export const GenerateFrameModal = ({
                 : null;
 
               if (isWidth && heightParam) {
-                const [heightName, heightInfo] = heightParam;
+                const [, heightInfo] = heightParam;
                 return (
                   <div key="dimensions" className="form-field-row">
                     {/* Width field */}
@@ -290,7 +306,7 @@ export const GenerateFrameModal = ({
                         id="width"
                         type="number"
                         className={`form-input ${errors.width ? "error" : ""}`}
-                        value={parameters.width ?? ""}
+                        value={String(parameters.width ?? "")}
                         onChange={(e) =>
                           handleInputChange("width", e.target.value)
                         }
@@ -307,7 +323,7 @@ export const GenerateFrameModal = ({
                         {getDefaultValue("width", param) !== undefined &&
                           getDefaultValue("width", param) !== null && (
                             <span className="field-default">
-                              Default: {getDefaultValue("width", param)}
+                              Default: {String(getDefaultValue("width", param))}
                               {projectWidth && " (from project)"}
                             </span>
                           )}
@@ -326,7 +342,7 @@ export const GenerateFrameModal = ({
                         id="height"
                         type="number"
                         className={`form-input ${errors.height ? "error" : ""}`}
-                        value={parameters.height ?? ""}
+                        value={String(parameters.height ?? "")}
                         onChange={(e) =>
                           handleInputChange("height", e.target.value)
                         }
@@ -344,7 +360,7 @@ export const GenerateFrameModal = ({
                         {getDefaultValue("height", heightInfo) !== undefined &&
                           getDefaultValue("height", heightInfo) !== null && (
                             <span className="field-default">
-                              Default: {getDefaultValue("height", heightInfo)}
+                              Default: {String(getDefaultValue("height", heightInfo))}
                               {projectHeight && " (from project)"}
                             </span>
                           )}
@@ -367,7 +383,7 @@ export const GenerateFrameModal = ({
                   {param.type === "lora_list" && param.item_schema ? (
                     <LoraListField
                       itemSchema={param.item_schema}
-                      value={parameters[paramName] || []}
+                      value={(parameters[paramName] as LoraItem[]) || []}
                       onChange={(value) => handleInputChange(paramName, value)}
                     />
                   ) : param.type === "model_selection" && param.category ? (
@@ -376,7 +392,7 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] || ""}
+                      value={String(parameters[paramName] || "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
@@ -399,7 +415,7 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] || param.default || ""}
+                      value={String(parameters[paramName] || param.default || "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
@@ -412,13 +428,13 @@ export const GenerateFrameModal = ({
                     </select>
                   ) : param.type === "string" &&
                     (paramName.includes("prompt") ||
-                      param.example?.length > 50) ? (
+                      (param.example && param.example.length > 50)) ? (
                     <textarea
                       id={paramName}
                       className={`form-textarea ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] || ""}
+                      value={String(parameters[paramName] || "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
@@ -432,7 +448,7 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] || ""}
+                      value={String(parameters[paramName] || "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
@@ -447,7 +463,7 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] ?? ""}
+                      value={String(parameters[paramName] ?? "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
@@ -463,7 +479,7 @@ export const GenerateFrameModal = ({
                       className={`form-input ${
                         errors[paramName] ? "error" : ""
                       }`}
-                      value={parameters[paramName] || ""}
+                      value={String(parameters[paramName] || "")}
                       onChange={(e) =>
                         handleInputChange(paramName, e.target.value)
                       }
