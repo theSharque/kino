@@ -16,6 +16,7 @@ from comfy.sample import sample  # type: ignore
 from comfy.sd import load_checkpoint_guess_config  # type: ignore
 from comfy.sd import load_lora_for_models  # type: ignore
 from comfy.utils import load_torch_file  # type: ignore
+import comfy.model_sampling  # type: ignore
 
 
 def load_checkpoint_plugin(ckpt_path):
@@ -97,6 +98,42 @@ def vae_decode(vae, samples):
     return images
 
 
+def model_sampling_sd3(model, shift=8):
+    """
+    Apply SD3 model sampling with shift parameter
+
+    Args:
+        model: Loaded model
+        shift: Shift parameter for SD3 sampling (default: 8)
+
+    Returns:
+        model: Model with SD3 sampling applied
+    """
+    try:
+        # Clone model to avoid modifying original
+        m = model.clone()
+
+        # Create SD3 sampling class
+        class ModelSamplingSD3(comfy.model_sampling.ModelSamplingDiscrete, comfy.model_sampling.V_PREDICTION):
+            def __init__(self, model_config, shift=8):
+                super().__init__(model_config)
+                self.shift = shift
+
+            def _register_schedule(self, given_betas=None, beta_schedule="linear", timesteps=1000,
+                                  linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3, zsnr=False):
+                super()._register_schedule(given_betas, beta_schedule, timesteps, linear_start, linear_end, cosine_s, zsnr)
+                # Apply shift to timesteps
+                self.timesteps = torch.arange(timesteps + self.shift, dtype=torch.float32)
+
+        # Apply SD3 sampling to model
+        m.add_object_patch("model_sampling", ModelSamplingSD3(model.model.model_config, shift=shift))
+        return m
+
+    except Exception as e:
+        print(f"Error applying SD3 sampling: {e}")
+        return model
+
+
 def load_lora(lora_path, model, clip, strength_model=1.0, strength_clip=1.0):
     """
     Load and apply LoRA to model and CLIP
@@ -124,3 +161,30 @@ def load_lora(lora_path, model, clip, strength_model=1.0, strength_clip=1.0):
     )
 
     return (modified_model, modified_clip)
+
+
+def load_lora_model_only(lora_path, model, strength_model=1.0):
+    """
+    Load and apply LoRA to model only (without CLIP)
+
+    Args:
+        lora_path: Path to LoRA .safetensors file
+        model: Model from checkpoint loader
+        strength_model: LoRA strength for model (0.0-2.0, default 1.0)
+
+    Returns:
+        Modified model with LoRA applied
+    """
+    # Load LoRA from file
+    lora_data = load_torch_file(lora_path, safe_load=False)
+
+    # Apply LoRA to model only (pass None for clip)
+    modified_model, _ = load_lora_for_models(
+        model,
+        None,  # No CLIP
+        lora_data,
+        strength_model,
+        0.0  # strength_clip is 0 since we don't have CLIP
+    )
+
+    return modified_model
