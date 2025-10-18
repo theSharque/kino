@@ -14,6 +14,39 @@ This document describes automated smoke tests to verify the core functionality o
 - Test image size: 512x512 pixels
 - Test steps: 5-20 steps (as specified per test)
 
+## Prerequisites
+
+Before running smoke tests, ensure you have:
+
+### Required Software
+- **Python 3.12+** (for backend)
+- **Node.js LTS** (for frontend, managed via nvm)
+- **nvm** (Node Version Manager)
+- **Git**
+
+### Backend Setup
+```bash
+cd backend
+
+# Create virtual environment
+python3.12 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Frontend Setup
+```bash
+cd frontend
+
+# Activate Node.js LTS
+nvm use --lts
+
+# Install dependencies
+npm install
+```
+
 ## Pre-Test Setup
 
 ### Check and Stop Running Servers
@@ -63,27 +96,54 @@ This document describes automated smoke tests to verify the core functionality o
 ### Test 1: Application Startup
 **Objective**: Verify application starts correctly without errors
 
+**Prerequisites**:
+- Python 3.12+ installed
+- Node.js LTS installed via nvm
+- Backend virtual environment created and dependencies installed
+- Frontend dependencies installed
+
 **Steps**:
-1. Activate backend virtual environment and start server with log output to file:
+1. **Start Backend Server**:
    ```bash
-   cd backend && source venv/bin/activate && python main.py > server.log 2>&1 &
+   cd backend
+   source venv/bin/activate  # Activate virtual environment
+   python main.py > server.log 2>&1 &
    ```
-2. Start frontend server with log output to file:
+   Backend will start on `http://localhost:8000`
+
+2. **Start Frontend Server**:
    ```bash
-   cd frontend && npm run dev > frontend.log 2>&1 &
+   cd frontend
+   nvm use --lts  # Activate Node.js LTS (REQUIRED!)
+   npm run dev > frontend.log 2>&1 &
    ```
-3. Wait 5-10 seconds for servers to fully start
-4. Check backend logs for any startup errors:
+   Frontend will start on `http://localhost:5173`
+
+   **Alternative (if nvm is not available)**:
+   ```bash
+   cd frontend
+   ./node_modules/.bin/vite > frontend.log 2>&1 &
+   ```
+   Note: This requires Node.js to be installed system-wide
+
+3. **Wait for servers to start** (5-10 seconds)
+
+4. **Check Backend Logs**:
    ```bash
    tail -20 backend/server.log
    ```
-5. Check frontend logs for any startup errors:
+   Look for: "Server started", "Database initialized", "Generator service initialized"
+
+5. **Check Frontend Logs**:
    ```bash
    tail -20 frontend/frontend.log
    ```
-6. Open browser and navigate to frontend URL (typically `http://localhost:5173`)
-7. Check WebSocket connection in browser console:
-   - Open browser Developer Tools (F12)
+   Look for: "Local: http://localhost:5173/", "ready in Xms"
+
+6. **Open Browser** and navigate to `http://localhost:5173`
+
+7. **Check WebSocket Connection** in browser console:
+   - Open Developer Tools (F12)
    - Check Console tab for WebSocket connection messages
    - Look for: "WebSocket connected" or similar messages
 
@@ -279,26 +339,31 @@ Watch for these error patterns:
 **Objective**: Clean up test environment and remove old logs
 
 **Steps**:
-1. Stop backend server:
+1. **Stop Backend Server**:
    ```bash
    pkill -f "python.*main.py"
    ```
-2. Stop frontend server:
+
+2. **Stop Frontend Server**:
    ```bash
    pkill -f "vite\|npm.*dev"
    ```
-3. Wait 2-3 seconds for processes to fully terminate
-4. Verify servers are stopped:
+
+3. **Wait for processes to terminate** (2-3 seconds)
+
+4. **Verify servers are stopped**:
    ```bash
    netstat -tulpn | grep :8000  # Should be empty
    netstat -tulpn | grep :5173  # Should be empty
    ```
-5. Clean up log files:
+
+5. **Clean up log files**:
    ```bash
    rm -f backend/server.log
    rm -f frontend/frontend.log
    ```
-6. Verify log files are removed:
+
+6. **Verify log files are removed**:
    ```bash
    ls -la backend/server.log 2>/dev/null || echo "Backend log cleaned"
    ls -la frontend/frontend.log 2>/dev/null || echo "Frontend log cleaned"
@@ -335,20 +400,36 @@ All tests must pass for the application to be considered stable:
 ## Troubleshooting
 
 If tests fail:
-1. Check backend logs for detailed error messages:
+1. **Check backend logs** for detailed error messages:
    ```bash
    tail -50 backend/server.log
    ```
-2. Check frontend logs for JavaScript errors:
+2. **Check frontend logs** for JavaScript errors:
    ```bash
    tail -50 frontend/frontend.log
    ```
-3. Monitor logs in real-time during tests:
+3. **Monitor logs in real-time** during tests:
    ```bash
    tail -f backend/server.log  # Backend logs
    tail -f frontend/frontend.log  # Frontend logs
    ```
-4. Verify file system permissions
-5. Verify database integrity
-6. Check WebSocket connection status
-7. Verify all required dependencies are installed
+4. **Verify file system permissions**
+5. **Verify database integrity**
+6. **Check WebSocket connection status**
+7. **Verify all required dependencies are installed**
+
+### Common Issues
+
+**Frontend won't start**:
+- Ensure Node.js LTS is installed via nvm: `nvm use --lts`
+- If nvm is not available, install Node.js system-wide
+- Check if dependencies are installed: `npm install`
+
+**Backend won't start**:
+- Ensure Python 3.12+ is installed
+- Check if virtual environment is activated: `source venv/bin/activate`
+- Verify dependencies are installed: `pip install -r requirements.txt`
+
+**Port conflicts**:
+- Check if ports 8000 or 5173 are already in use
+- Stop conflicting services or change ports in configuration
