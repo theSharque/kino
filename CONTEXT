@@ -1,8 +1,8 @@
 Kino – Unified Project Context
-Last Updated: 2025-10-16
+Last Updated: 2025-10-18
 
 Overview
-- SPA to manage projects and generate image frames with SDXL.
+- SPA to manage projects and generate image frames/videos with SDXL and Wan22-I2V plugins.
 - Monorepo: backend (Python/aiohttp) + frontend (React/TypeScript).
 
 Tech & Runtime
@@ -20,11 +20,24 @@ Storage & Paths
 - Frames: backend/data/frames (.png + .json sidecar)
 - Models: backend/models_storage
 
-Generation (SDXL plugin)
+Generation Plugins
+SDXL plugin:
 - Filenames: task_{task_id}_{timestamp}.png
 - Parameters JSON: same basename with .json next to the image
 - Preview: same .png file used for preview and final; overwritten each step and on completion (no "_preview" suffix)
 - Params saving: save_generation_params is async, uses keyword args; for regeneration pass frame_id and await
+
+Wan22-I2V plugin (Image-to-Video):
+- Pipeline: 9-step I2V generation with CLIP Vision, VAE, Text Encoder (GGUF), dual KSampler (HIGH/LOW)
+- Models: GGUF quantized (wan2.2_i2v_high_noise_14B_Q6_K.gguf, wan2.2_i2v_low_noise_14B_Q6_K.gguf)
+- Filenames: project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_{seq:03d}.png (sequential frames)
+- Frame count: 1 + X * 4 (e.g., 5, 9, 13, 17, ..., 81, ..., 121 frames)
+- LoRAs: Separate high_loras and low_loras (applied to respective models, strength_model only)
+- System LoRAs: FusionX + Lightning I2V (HIGH/LOW) from SysLora folder
+- Constants: cfg_scale=1.0, steps=4, ModelSamplingSD3 shift=8
+- Memory optimization: JIT model loading before each KSampler
+- Output: High-quality PNG sequence (no video encoding)
+- Default negative prompt: "vivid colors, overexposed, static, blurry details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, static frame, cluttered background, three legs, walking backwards, slow motion, slowmo"
 
 Frontend Behavior
 - On generation_started: add frame to refresh set; reload preview every 1s with cache-busting (?t=timestamp)
@@ -52,6 +65,13 @@ Current Status / Fixes
 - Fixed save_generation_params (async + FrameService), updated plugin calls
 - Preview logs every step; frontend auto-refresh confirmed (1s)
 - Removed "_preview" suffix everywhere; unified naming
+- Added Wan22-I2V plugin (2025-10-18):
+  * Full I2V pipeline with GGUF models
+  * Dual KSampler (HIGH/LOW noise) with ModelSamplingSD3
+  * User-configurable LoRAs (high_loras/low_loras)
+  * Sequential PNG frame output (no video encoding)
+  * Frontend modal with LoRA UI (Wan22LoraListField component)
+  * Added load_lora_model_only to comfy_bricks
 
 Rules for AI Assistance
 - ALWAYS read this CONTEXT before coding.
