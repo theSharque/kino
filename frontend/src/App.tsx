@@ -332,9 +332,9 @@ function App() {
         projectFrames.forEach((frame) => {
           // Extract base frame ID from path (assume format: project_{project_id}_frame_{frame_id}_variant_{variant_id}.png)
           const pathParts = frame.path.split("_");
-          // Use naming_frame_id from path as base identifier for grouping variants of the same generation
-          const namingFrameId = pathParts[3]; // naming_frame_id part from path
-          const baseFrameId = `${pathParts[1]}_${namingFrameId}`; // project_id + naming_frame_id as base identifier
+          // Use frame_id from path as base identifier for grouping variants of the same generation
+          const frameId = pathParts[3]; // frame_id part from path
+          const baseFrameId = `${pathParts[1]}_${frameId}`; // project_id + frame_id as base identifier
 
           if (!variantsMap.has(baseFrameId)) {
             variantsMap.set(baseFrameId, []);
