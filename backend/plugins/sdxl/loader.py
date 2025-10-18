@@ -177,11 +177,13 @@ class SDXLLoader:
                         error=f"Failed to generate variant {variant_idx + 1}: {variant_result['error']}"
                     )
 
-                # Set base_frame_id from first variant
+                # Set base_frame_id from first variant (all variants will use the same base frame_id)
                 if base_frame_id is None:
                     base_frame_id = variant_result['frame_id']
 
+                # Add all frame_ids to generated_frames (each variant creates its own DB record)
                 generated_frames.append(variant_result['frame_id'])
+                
                 log.info("sdxl_variant_completed", {
                     "variant_idx": variant_idx + 1,
                     "total_variants": num_variants,
@@ -332,8 +334,9 @@ class SDXLLoader:
 
                     created_frame = await self.frame_service.create_frame(frame_create)
                     frame_id = created_frame.id
+                    base_frame_id = frame_id  # Set base_frame_id for subsequent variants
                 else:
-                    # Subsequent variants: reuse base_frame_id but create new record
+                    # Subsequent variants: create new DB record with same base_frame_id for naming
                     temp_path = f"temp_frame_{project_id}_{variant_idx}.png"
 
                     frame_create = FrameCreate(
@@ -346,21 +349,21 @@ class SDXLLoader:
                     created_frame = await self.frame_service.create_frame(frame_create)
                     frame_id = created_frame.id  # This will be different, but we'll use base_frame_id for naming
 
-                # Use base_frame_id for naming (or frame_id if it's the first variant)
-                naming_frame_id = base_frame_id if base_frame_id is not None else frame_id
-                filename = f"project_{project_id}_frame_{naming_frame_id}_variant_{variant_idx}.png"
-                preview_filename = f"project_{project_id}_frame_{naming_frame_id}_variant_{variant_idx}.png"
+                # Use base_frame_id for naming (all variants use the same base frame_id)
+                filename = f"project_{project_id}_frame_{base_frame_id}_variant_{variant_idx}.png"
+                preview_filename = f"project_{project_id}_frame_{base_frame_id}_variant_{variant_idx}.png"
                 frames_dir = Path(Config.FRAMES_DIR)
                 frames_dir.mkdir(parents=True, exist_ok=True)
 
                 self.preview_path = str(frames_dir / preview_filename)
                 final_path = str(frames_dir / filename)
 
-                # Update frame path with correct path
-                from models.frame import FrameUpdate
-                await self.frame_service.update_frame(frame_id, FrameUpdate(
-                    path=self.preview_path
-                ))
+                # Update frame path with correct path (only for first variant)
+                if variant_idx == 0:
+                    from models.frame import FrameUpdate
+                    await self.frame_service.update_frame(frame_id, FrameUpdate(
+                        path=self.preview_path
+                    ))
             else:
                 # Regeneration: use existing frame's path
                 existing_frame = await self.frame_service.get_frame_by_id(regenerate_frame_id)
@@ -547,7 +550,7 @@ class SDXLLoader:
 
             return {
                 'success': True,
-                'frame_id': naming_frame_id if not regenerate_frame_id else frame_id,  # Return naming frame_id for grouping
+                'frame_id': frame_id,  # Return actual frame_id
                 'output_path': output_path_str,
                 'variant_id': variant_idx,
                 'seed': used_seed
