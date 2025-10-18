@@ -88,9 +88,12 @@ npm install
 > **Note**: Tests are interdependent and must be run in order:
 > - Pre-Test Setup: Clean environment
 > - Test 1: Starts servers (required for all subsequent tests)
-> - Test 2: Creates project (required for Tests 3-6)
-> - Tests 3-4: Generate frames (required for Tests 5-6)
-> - Tests 5-6: Test deletion functionality
+> - Test 2: Creates project (required for Tests 3-8)
+> - Tests 3-4: Generate SDXL frames (required for Tests 6-8)
+> - Test 5: Generate Wan22-I2V video (requires existing frames from Tests 3-4)
+> - Test 6: Test frame deletion functionality
+> - Test 7: Test project deletion functionality
+> - Test 8: Generate Wan22-I2V video with LoRA (requires existing frames from Tests 3-4)
 > - Post-Test Cleanup: Stop servers and clean logs
 
 ### Test 1: Application Startup
@@ -233,7 +236,48 @@ npm install
 
 ---
 
-### Test 5: Frame Deletion
+### Test 5: Wan22-I2V Video Generation
+**Objective**: Verify Wan22-I2V video generation functionality
+
+**Prerequisites**:
+- A project with at least one frame exists (from previous tests)
+- Wan22-I2V plugin is available
+
+**Steps**:
+1. Ensure a project is selected with existing frames
+2. Click "Generate Frame" button
+3. Select WAN22_I2V generator
+4. Set parameters:
+   - Width: 512
+   - Height: 512
+   - Num Frames: 17 (1 + 4*4 = 17 frames)
+   - Prompt: "A beautiful landscape animation"
+   - Negative Prompt: (use default)
+   - Seed: (auto-generated)
+5. Click "Generate"
+6. Monitor backend logs during generation
+7. Monitor frontend for preview updates
+8. Wait for completion (may take 2-5 minutes)
+
+**Expected Results**:
+- ✅ Generation starts successfully
+- ✅ Backend logs show Wan22-I2V pipeline execution
+- ✅ Frontend shows preview images updating
+- ✅ 17 sequential PNG files are created (project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_000.png to seq_016.png)
+- ✅ 1 JSON parameter file is created
+- ✅ 1 database record is created with variant_id 0
+- ✅ Frame viewer shows the first frame as preview
+- ✅ Timeline shows 1 new frame (total frames = previous + 1)
+
+**Notes**:
+- Wan22-I2V generates video sequences as individual PNG frames
+- The first frame (seq_000) serves as the preview image
+- Generation time depends on hardware (GPU/CPU performance)
+- All frames use the same base_frame_id for consistent naming
+
+---
+
+### Test 6: Frame Deletion
 **Objective**: Verify frame deletion removes all associated files
 
 **Steps**:
@@ -259,14 +303,15 @@ npm install
 
 **Expected Results**:
 - ✅ Frame is removed from timeline
-- ✅ All variant image files are deleted from filesystem
+- ✅ All variant image files are deleted from filesystem (for SDXL frames)
+- ✅ All sequential PNG files are deleted from filesystem (for Wan22-I2V frames)
 - ✅ All variant JSON parameter files are deleted
 - ✅ All database records for the frame variants are deleted
 - ✅ No orphaned files remain
 
 ---
 
-### Test 6: Project Deletion
+### Test 7: Project Deletion
 **Objective**: Verify project deletion removes all associated data
 
 **Steps**:
@@ -303,6 +348,52 @@ npm install
 
 ---
 
+### Test 8: Wan22-I2V with LoRA Generation
+**Objective**: Verify Wan22-I2V video generation with LoRA functionality
+
+**Prerequisites**:
+- A project with existing frames exists (from previous tests)
+- Wan22-I2V plugin is available
+- LoRA files are available in models_storage/Lora/ folder
+
+**Steps**:
+1. Ensure a project is selected with existing frames
+2. Click "Generate Frame" button
+3. Select WAN22_I2V generator
+4. Set parameters:
+   - Width: 512
+   - Height: 512
+   - Num Frames: 9 (1 + 2*4 = 9 frames)
+   - Prompt: "A cinematic landscape with flowing water"
+   - Negative Prompt: (use default)
+   - Seed: (auto-generated)
+   - HIGH Model LoRAs: Add 1 LoRA with strength 0.8
+   - LOW Model LoRAs: Add 1 LoRA with strength 0.6
+5. Click "Generate"
+6. Monitor backend logs during generation
+7. Monitor frontend for preview updates
+8. Wait for completion (may take 3-6 minutes)
+
+**Expected Results**:
+- ✅ Generation starts successfully
+- ✅ Backend logs show LoRA loading and application
+- ✅ Backend logs show Wan22-I2V pipeline execution with LoRA
+- ✅ Frontend shows preview images updating
+- ✅ 9 sequential PNG files are created (project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_000.png to seq_008.png)
+- ✅ 1 JSON parameter file is created with LoRA parameters
+- ✅ 1 database record is created with variant_id 0
+- ✅ Frame viewer shows the first frame as preview
+- ✅ Timeline shows 1 new frame (total frames = previous + 1)
+- ✅ Generated video shows LoRA effects (different from Test 5)
+
+**Notes**:
+- This test verifies LoRA integration with Wan22-I2V
+- LoRA strength affects the intensity of applied effects
+- Generation time may be longer due to LoRA processing
+- Compare results with Test 5 to verify LoRA effects
+
+---
+
 ## Test Execution Notes
 
 ### Backend Log Monitoring
@@ -310,8 +401,12 @@ Monitor `backend/server.log` for these log patterns:
 - `[INFO] Server started on http://0.0.0.0:8000`
 - `[INFO] WebSocket connection established`
 - `[INFO] Starting frame generation for project {project_id}`
-- `[INFO] Generated variant {variant_id} for frame {frame_id}`
+- `[INFO] Generated variant {variant_id} for frame {frame_id}` (SDXL)
 - `[INFO] Frame generation completed successfully`
+- `[INFO] Wan22-I2V generation started` (Wan22-I2V)
+- `[INFO] Loading HIGH model with LoRA` (Wan22-I2V with LoRA)
+- `[INFO] Loading LOW model with LoRA` (Wan22-I2V with LoRA)
+- `[INFO] Wan22-I2V generation completed` (Wan22-I2V)
 
 ### Frontend Log Monitoring
 Monitor `frontend/frontend.log` for these log patterns:
@@ -322,7 +417,11 @@ Monitor `frontend/frontend.log` for these log patterns:
 
 ### File System Verification
 Check these directories:
-- `backend/data/frames/` - Should contain generated images and JSON parameter files
+- `backend/data/frames/` - Should contain:
+  - SDXL images: `project_{project_id}_frame_{frame_id}_variant_{variant_id}.png`
+  - SDXL parameters: `project_{project_id}_frame_{frame_id}_variant_{variant_id}.json`
+  - Wan22-I2V sequences: `project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_{seq:03d}.png`
+  - Wan22-I2V parameters: `project_{project_id}_frame_{frame_id}_variant_{variant_id}.json`
 - Database: `backend/data/kino.db` - Should contain project and frame records
 
 ### Error Indicators
