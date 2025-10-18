@@ -55,6 +55,7 @@ export interface PluginParameter {
   example?: string;
   min?: number;
   max?: number;
+  step?: number; // Step for number inputs
   category?: string; // For model_selection type
   options?: string[]; // For enum-like fields
   item_schema?: Record<string, PluginParameter>; // For lora_list type

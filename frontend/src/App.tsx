@@ -9,6 +9,7 @@ import { DeleteFrameModal } from "./components/modals/DeleteFrameModal";
 import { AboutModal } from "./components/modals/AboutModal";
 import { SelectGeneratorModal } from "./components/modals/SelectGeneratorModal";
 import { GenerateFrameModal } from "./components/modals/GenerateFrameModal";
+import { GenerateWan22I2VModal } from "./components/modals/GenerateWan22I2VModal";
 import type { Project, Frame, PluginInfo } from "./api/client";
 import { framesAPI, generatorAPI, systemAPI, projectsAPI } from "./api/client";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -772,21 +773,39 @@ function App() {
         onSelect={handleGeneratorSelect}
       />
 
-      <GenerateFrameModal
-        isOpen={isGenerateFrameModalOpen}
-        onClose={() => {
-          setIsGenerateFrameModalOpen(false);
-          setRegenerateParams(null);
-          setRegenerateFrameId(null);
-        }}
-        plugin={selectedPlugin}
-        projectId={currentProject?.id || null}
-        projectWidth={currentProject?.width}
-        projectHeight={currentProject?.height}
-        initialParams={regenerateParams}
-        regenerateFrameId={regenerateFrameId}
-        onGenerate={handleGenerate}
-      />
+      {selectedPlugin?.name === "wan22_i2v" ? (
+        <GenerateWan22I2VModal
+          isOpen={isGenerateFrameModalOpen}
+          onClose={() => {
+            setIsGenerateFrameModalOpen(false);
+            setRegenerateParams(null);
+            setRegenerateFrameId(null);
+          }}
+          plugin={selectedPlugin}
+          projectId={currentProject?.id || null}
+          projectWidth={currentProject?.width}
+          projectHeight={currentProject?.height}
+          initialParams={regenerateParams}
+          regenerateFrameId={regenerateFrameId}
+          onGenerate={handleGenerate}
+        />
+      ) : (
+        <GenerateFrameModal
+          isOpen={isGenerateFrameModalOpen}
+          onClose={() => {
+            setIsGenerateFrameModalOpen(false);
+            setRegenerateParams(null);
+            setRegenerateFrameId(null);
+          }}
+          plugin={selectedPlugin}
+          projectId={currentProject?.id || null}
+          projectWidth={currentProject?.width}
+          projectHeight={currentProject?.height}
+          initialParams={regenerateParams}
+          regenerateFrameId={regenerateFrameId}
+          onGenerate={handleGenerate}
+        />
+      )}
     </div>
   );
 }
