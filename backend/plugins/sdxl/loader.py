@@ -183,7 +183,7 @@ class SDXLLoader:
 
                 # Add all frame_ids to generated_frames (each variant creates its own DB record)
                 generated_frames.append(variant_result['frame_id'])
-                
+
                 log.info("sdxl_variant_completed", {
                     "variant_idx": variant_idx + 1,
                     "total_variants": num_variants,
