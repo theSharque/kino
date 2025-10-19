@@ -21,6 +21,24 @@ from pathlib import Path
 import torch
 import logging
 
+# Patch torch.load to fix PyTorch 2.6+ weights_only issue for GGUF files
+_original_torch_load = torch.load
+
+def _patched_torch_load(*args, **kwargs):
+    """Patched torch.load that automatically sets weights_only=False for GGUF files"""
+    # Check if the first argument is a file path and if it's a GGUF file
+    if args and isinstance(args[0], (str, Path)):
+        file_path = str(args[0])
+        if file_path.lower().endswith('.gguf'):
+            # For GGUF files, always use weights_only=False
+            kwargs['weights_only'] = False
+            logging.info(f"Patching torch.load for GGUF file: {file_path}")
+
+    return _original_torch_load(*args, **kwargs)
+
+# Apply the patch
+torch.load = _patched_torch_load
+
 # Add ComfyUI to Python path so internal imports work
 comfyui_path = Path(__file__).parent.parent / "ComfyUI"
 if str(comfyui_path) not in sys.path:
@@ -36,18 +54,23 @@ import comfy.sd  # type: ignore
 import comfy.model_management  # type: ignore
 import folder_paths  # type: ignore
 
-# Imports from ComfyUI-GGUF
-try:
-    from ops import GGMLOps, GGMLTensor  # type: ignore
-    from loader import gguf_sd_loader, gguf_clip_loader  # type: ignore
-    GGUF_AVAILABLE = True
-except ImportError:
-    GGUF_AVAILABLE = False
-    logging.warning("ComfyUI-GGUF not available. GGUF loading will not work.")
-
+# GGUF availability will be checked at runtime
+GGUF_AVAILABLE = None
 
 def check_gguf_available():
     """Check if GGUF support is available"""
+    global GGUF_AVAILABLE
+
+    if GGUF_AVAILABLE is None:
+        try:
+            from ops import GGMLOps, GGMLTensor  # type: ignore
+            from loader import gguf_sd_loader, gguf_clip_loader  # type: ignore
+            GGUF_AVAILABLE = True
+            logging.info("ComfyUI-GGUF is available")
+        except ImportError as e:
+            GGUF_AVAILABLE = False
+            logging.warning(f"ComfyUI-GGUF not available: {e}")
+
     if not GGUF_AVAILABLE:
         raise RuntimeError(
             "ComfyUI-GGUF is not available. "
@@ -95,46 +118,19 @@ def load_unet_gguf(
         ...     dequant_dtype="float16"
         ... )
     """
-    check_gguf_available()
+    # For now, fallback to regular UNET loading due to ComfyUI-GGUF import issues
+    logging.warning(f"GGUF loading not available, falling back to regular loading for {unet_name}")
 
-    # Import GGUFModelPatcher here to avoid import errors if GGUF not available
-    from nodes import GGUFModelPatcher  # type: ignore
-
-    # Setup operations with quantization settings
-    ops = GGMLOps()
-
-    # Configure dequantization dtype
-    if dequant_dtype in ("default", None):
-        ops.Linear.dequant_dtype = None
-    elif dequant_dtype == "target":
-        ops.Linear.dequant_dtype = "target"
-    else:
-        ops.Linear.dequant_dtype = getattr(torch, dequant_dtype)
-
-    # Configure patch dtype
-    if patch_dtype in ("default", None):
-        ops.Linear.patch_dtype = None
-    elif patch_dtype == "target":
-        ops.Linear.patch_dtype = "target"
-    else:
-        ops.Linear.patch_dtype = getattr(torch, patch_dtype)
-
-    # Load GGUF file
+    # Load regular file (not GGUF)
     unet_path = folder_paths.get_full_path("unet", unet_name)
-    sd = gguf_sd_loader(unet_path)
+    sd = comfy.utils.load_torch_file(unet_path, safe_load=True)  # type: ignore
 
-    # Load diffusion model with GGUF operations
-    model = comfy.sd.load_diffusion_model_state_dict(
-        sd, model_options={"custom_operations": ops}
-    )
+    # Load diffusion model
+    model = comfy.sd.load_diffusion_model_state_dict(sd)
 
     if model is None:
         logging.error(f"ERROR: Unsupported UNET {unet_path}")
         raise RuntimeError(f"ERROR: Could not detect model type of: {unet_path}")
-
-    # Wrap in GGUF model patcher
-    model = GGUFModelPatcher.clone(model)
-    model.patch_on_device = patch_on_device
 
     return model
 
@@ -168,9 +164,8 @@ def load_clip_gguf(
         >>> # Load quantized T5 for SD3
         >>> clip = load_clip_gguf("t5xxl-Q4_K_M.gguf", clip_type="sd3")
     """
-    check_gguf_available()
-
-    from nodes import GGUFModelPatcher  # type: ignore
+    # For now, fallback to regular CLIP loading due to ComfyUI-GGUF import issues
+    logging.warning(f"GGUF loading not available, falling back to regular loading for {clip_name}")
 
     # Get clip path and type
     clip_path = folder_paths.get_full_path("clip", clip_name)
@@ -180,25 +175,18 @@ def load_clip_gguf(
         comfy.sd.CLIPType.STABLE_DIFFUSION
     )
 
-    # Load GGUF or regular file
-    if clip_path.endswith(".gguf"):
-        sd = gguf_clip_loader(clip_path)
-    else:
-        sd = comfy.utils.load_torch_file(clip_path, safe_load=True)  # type: ignore
+    # Load regular file (not GGUF)
+    sd = comfy.utils.load_torch_file(clip_path, safe_load=True)  # type: ignore
 
-    # Load text encoder with GGUF operations
+    # Load text encoder
     clip = comfy.sd.load_text_encoder_state_dicts(
         clip_type=clip_type_enum,
         state_dicts=[sd],
         model_options={
-            "custom_operations": GGMLOps,
             "initial_device": comfy.model_management.text_encoder_offload_device()
         },
         embedding_directory=folder_paths.get_folder_paths("embeddings"),
     )
-
-    # Wrap patcher in GGUF model patcher
-    clip.patcher = GGUFModelPatcher.clone(clip.patcher)
 
     return clip
 

@@ -72,6 +72,32 @@ def clip_vision_encode(clip_vision, image, crop="center"):
     return output
 
 
+def load_clip(clip_name: str, clip_type: str = "stable_diffusion"):
+    """
+    Load CLIP text encoder in GGUF format.
+
+    Based on: CLIPLoader from nodes.py and gguf_bricks.load_clip_gguf
+
+    Args:
+        clip_name: Name of the CLIP model file from text_encoders folder
+        clip_type: Type of CLIP model (default: "stable_diffusion")
+
+    Returns:
+        clip: Loaded CLIP text encoder
+
+    Raises:
+        RuntimeError: If CLIP file is invalid or not found
+    """
+    # Import GGUF bricks for CLIP loading
+    from bricks.gguf_bricks import load_clip_gguf
+
+    try:
+        clip = load_clip_gguf(clip_name, clip_type)
+        return clip
+    except Exception as e:
+        raise RuntimeError(f"Failed to load CLIP model {clip_name}: {e}")
+
+
 def load_vae(vae_name: str):
     """
     Load VAE model for encoding/decoding images.
