@@ -248,8 +248,8 @@ npm install
 2. Click "Generate Frame" button
 3. Select WAN22_I2V generator
 4. Set parameters:
-   - Width: 512
-   - Height: 512
+   - Width: 256
+   - Height: 256
    - Num Frames: 17 (1 + 4*4 = 17 frames)
    - Prompt: "A beautiful landscape animation"
    - Negative Prompt: (use default)
@@ -277,7 +277,53 @@ npm install
 
 ---
 
-### Test 6: Frame Deletion
+### Test 6: Wan22-I2V with LoRA Generation
+**Objective**: Verify Wan22-I2V video generation with LoRA functionality
+
+**Prerequisites**:
+- A project with existing frames exists (from previous tests)
+- Wan22-I2V plugin is available
+- LoRA files are available in models_storage/Lora/ folder
+
+**Steps**:
+1. Ensure a project is selected with existing frames
+2. Click "Generate Frame" button
+3. Select WAN22_I2V generator
+4. Set parameters:
+   - Width: 256
+   - Height: 256
+   - Num Frames: 9 (1 + 2*4 = 9 frames)
+   - Prompt: "A cinematic landscape with flowing water"
+   - Negative Prompt: (use default)
+   - Seed: (auto-generated)
+   - HIGH Model LoRAs: Add 1 LoRA with strength 0.8
+   - LOW Model LoRAs: Add 1 LoRA with strength 0.6
+5. Click "Generate"
+6. Monitor backend logs during generation
+7. Monitor frontend for preview updates
+8. Wait for completion (may take 3-6 minutes)
+
+**Expected Results**:
+- ✅ Generation starts successfully
+- ✅ Backend logs show LoRA loading and application
+- ✅ Backend logs show Wan22-I2V pipeline execution with LoRA
+- ✅ Frontend shows preview images updating
+- ✅ 9 sequential PNG files are created (project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_000.png to seq_008.png)
+- ✅ 1 JSON parameter file is created with LoRA parameters
+- ✅ 1 database record is created with variant_id 0
+- ✅ Frame viewer shows the first frame as preview
+- ✅ Timeline shows 1 new frame (total frames = previous + 1)
+- ✅ Generated video shows LoRA effects (different from Test 5)
+
+**Notes**:
+- This test verifies LoRA integration with Wan22-I2V
+- LoRA strength affects the intensity of applied effects
+- Generation time may be longer due to LoRA processing
+- Compare results with Test 5 to verify LoRA effects
+
+---
+
+### Test 7: Frame Deletion
 **Objective**: Verify frame deletion removes all associated files
 
 **Steps**:
@@ -311,7 +357,7 @@ npm install
 
 ---
 
-### Test 7: Project Deletion
+### Test 8: Project Deletion
 **Objective**: Verify project deletion removes all associated data
 
 **Steps**:
@@ -345,52 +391,6 @@ npm install
 - ✅ All frame JSON parameter files are deleted
 - ✅ All database records for the project and its frames are deleted
 - ✅ No orphaned files or database records remain
-
----
-
-### Test 8: Wan22-I2V with LoRA Generation
-**Objective**: Verify Wan22-I2V video generation with LoRA functionality
-
-**Prerequisites**:
-- A project with existing frames exists (from previous tests)
-- Wan22-I2V plugin is available
-- LoRA files are available in models_storage/Lora/ folder
-
-**Steps**:
-1. Ensure a project is selected with existing frames
-2. Click "Generate Frame" button
-3. Select WAN22_I2V generator
-4. Set parameters:
-   - Width: 512
-   - Height: 512
-   - Num Frames: 9 (1 + 2*4 = 9 frames)
-   - Prompt: "A cinematic landscape with flowing water"
-   - Negative Prompt: (use default)
-   - Seed: (auto-generated)
-   - HIGH Model LoRAs: Add 1 LoRA with strength 0.8
-   - LOW Model LoRAs: Add 1 LoRA with strength 0.6
-5. Click "Generate"
-6. Monitor backend logs during generation
-7. Monitor frontend for preview updates
-8. Wait for completion (may take 3-6 minutes)
-
-**Expected Results**:
-- ✅ Generation starts successfully
-- ✅ Backend logs show LoRA loading and application
-- ✅ Backend logs show Wan22-I2V pipeline execution with LoRA
-- ✅ Frontend shows preview images updating
-- ✅ 9 sequential PNG files are created (project_{project_id}_frame_{frame_id}_variant_{variant_id}_seq_000.png to seq_008.png)
-- ✅ 1 JSON parameter file is created with LoRA parameters
-- ✅ 1 database record is created with variant_id 0
-- ✅ Frame viewer shows the first frame as preview
-- ✅ Timeline shows 1 new frame (total frames = previous + 1)
-- ✅ Generated video shows LoRA effects (different from Test 5)
-
-**Notes**:
-- This test verifies LoRA integration with Wan22-I2V
-- LoRA strength affects the intensity of applied effects
-- Generation time may be longer due to LoRA processing
-- Compare results with Test 5 to verify LoRA effects
 
 ---
 
