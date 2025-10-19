@@ -304,6 +304,29 @@ The frontend includes React DevTools support. Open the browser console to see lo
 
 ---
 
+## ⚠️ Known Issues
+
+### GGUF Model Loading
+- **Issue:** GGUF quantized models fail to load with `invalid load key, '\\x00'` error
+- **Cause:** ComfyUI-GGUF uses relative imports that prevent proper module loading
+- **Affected:** Wan22-I2V plugin with GGUF models (wan2.2_i2v_high_noise_14B_Q6_K.gguf, umt5-xxl-encoder-Q6_K.gguf)
+- **Workaround:** Use safetensors models instead of GGUF format
+- **Status:** Under investigation - need alternative GGUF loading solution
+
+### PyTorch weights_only
+- **Issue:** PyTorch 2.6+ changed default `torch.load` behavior to `weights_only=True`
+- **Cause:** Security change in PyTorch for preventing arbitrary code execution
+- **Solution:** Implemented patch for GGUF files with `weights_only=False`
+- **Status:** Partially resolved - patch applied but GGUF format incompatibility remains
+
+### Generator Service
+- **Issue:** Tasks remain in "pending" status and don't start automatically
+- **Cause:** Generator service doesn't process tasks from queue automatically
+- **Workaround:** Use `/api/v1/generator/tasks/{id}/generate` endpoint to manually start tasks
+- **Status:** Identified - needs investigation of automatic task processing
+
+---
+
 ## 📄 License
 
 This project is proprietary software. All rights reserved.
