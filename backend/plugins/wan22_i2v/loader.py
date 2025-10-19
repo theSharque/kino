@@ -25,7 +25,7 @@ WAN22_HIGH_NOISE_MODEL = "wan2.2_i2v_high_noise_14B_Q6_K.gguf"
 WAN22_LOW_NOISE_MODEL = "wan2.2_i2v_low_noise_14B_Q6_K.gguf"
 
 # Additional Model Constants
-VAE_WAN_2_1_MODEL = "wan_2.1.safetensors"  # VAE model
+VAE_WAN_2_1_MODEL = "wan_2.1_vae.safetensors"  # VAE model
 TEXT_ENCODER_MODEL = "umt5-xxl-encoder-Q6_K.gguf"  # Text encoder model
 
 # SysLora Constants
@@ -34,6 +34,11 @@ SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH = "Wan2.2-Lightning_I2V-A14B-4steps-lora_HIG
 SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW = "Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors"
 SYS_LORA_WAN_2_2_LIGHTNING_T2V_HIGH = "Wan2.2-Lightning_T2V-A14B-4steps-lora_HIGH_fp16.safetensors"
 SYS_LORA_WAN_2_2_LIGHTNING_T2V_LOW = "Wan2.2-Lightning_T2V-A14B-4steps-lora_LOW_fp16.safetensors"
+
+# KSampler Constants (not user-configurable)
+WAN22_STEPS = 4  # Always 4 steps for Wan22-I2V
+WAN22_SPLIT = 2  # Split between High and Low noise models
+WAN22_CFG_SCALE = 1.0  # Always 1.0 for Wan22-I2V
 
 # Initialize logger
 log = setup_logging()
@@ -73,9 +78,9 @@ class Wan22I2VLoader:
         Expected data parameters:
         - prompt: str (required) - Text prompt for video generation
         - negative_prompt: str (optional) - Negative prompt
-        - width: int (optional, default: 512) - Video width
-        - height: int (optional, default: 512) - Video height
-        - num_frames: int (optional, default: 81) - Number of frames (must be 1 + X * 4)
+        - width: int (optional, default: 256) - Video width
+        - height: int (optional, default: 256) - Video height
+        - num_frames: int (optional, default: 17) - Number of frames (must be 1 + X * 4)
         - seed: int (optional, default: None) - Random seed (None = auto-generate)
         - high_loras: list (optional) - List of LoRA configurations for HIGH model with lora_name, strength_model
         - low_loras: list (optional) - List of LoRA configurations for LOW model with lora_name, strength_model
@@ -97,8 +102,6 @@ class Wan22I2VLoader:
             num_variants = parameters.get('num_variants', 1)  # Default to 1 variant
             base_seed = parameters.get('seed', None)  # Base seed for variants
 
-            # Use default model (can be made configurable later)
-            model_name = WAN22_HIGH_NOISE_MODEL
 
             # Validate required parameters before initializing DB
             if not prompt:
@@ -117,10 +120,8 @@ class Wan22I2VLoader:
                 )
 
             negative_prompt = parameters.get('negative_prompt', '')
-            width = parameters.get('width', 512)
-            height = parameters.get('height', 512)
-            steps = parameters.get('steps', 20)
-            cfg_scale = parameters.get('cfg_scale', 3.5)
+            width = parameters.get('width', 256)
+            height = parameters.get('height', 256)
             project_id = data.get('project_id', None)
 
             # Initialize frame service for preview updates using global DB
@@ -131,29 +132,8 @@ class Wan22I2VLoader:
             if self.should_stop:
                 return PluginResult(success=False, data={}, error="Generation stopped")
 
-            # Step 1: Load Wan22-I2V model (10%)
+            # Step 1: Initialize progress (10%)
             await self.update_progress(10.0, progress_callback)
-            model_path = os.path.join(Config.MODELS_DIR, "DiffusionModels", model_name)
-
-            if not os.path.exists(model_path):
-                return PluginResult(
-                    success=False,
-                    data={},
-                    error=f"Model not found: {model_path}"
-                )
-
-            # Load model (only if not already loaded or different model)
-            if self.loaded_model != model_path:
-                try:
-                    self.model = wan_bricks.load_wan22_i2v_model(model_path)
-                    self.loaded_model = model_path
-                    log.info("wan22_i2v_model_loaded", {"model": model_path})
-                except Exception as e:
-                    return PluginResult(
-                        success=False,
-                        data={},
-                        error=f"Failed to load model: {str(e)}"
-                    )
 
             # Generate multiple variants
             generated_frames = []
@@ -235,23 +215,19 @@ class Wan22I2VLoader:
             parameters = data.get('parameters', {})
             prompt = parameters.get('prompt')
             negative_prompt = parameters.get('negative_prompt', 'vivid colors, overexposed, static, blurry details, subtitles, style, artwork, painting, picture, still, overall gray, worst quality, low quality, JPEG artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, static frame, cluttered background, three legs, walking backwards, slow motion, slowmo')
-            width = parameters.get('width', 512)
-            height = parameters.get('height', 512)
-            num_frames = parameters.get('num_frames', 81)
+            width = parameters.get('width', 256)
+            height = parameters.get('height', 256)
+            num_frames = parameters.get('num_frames', 17)
 
             # Validate num_frames: must be 1 + X * 4
             if (num_frames - 1) % 4 != 0:
                 log.warning("wan22_i2v_invalid_num_frames", {
                     "num_frames": num_frames,
-                    "corrected_to": 81
+                    "corrected_to": 17
                 })
-                num_frames = 81  # Default to 81 if invalid
+                num_frames = 17  # Default to 17 if invalid
 
-            # Constants for KSampler (not user-configurable)
-            steps = 4  # Always 4 steps for Wan22-I2V
-            cfg_scale = 1.0  # Always 1.0 for Wan22-I2V
 
-            model_name = WAN22_HIGH_NOISE_MODEL  # Use constant instead of parameter
             project_id = data.get('project_id', None)
             regenerate_frame_id = data.get('frame_id', None)
             task_id = data.get('task_id', 0)
@@ -365,18 +341,18 @@ class Wan22I2VLoader:
             try:
                 # 1. Load CLIP Vision
                 await self.update_progress(35.0, progress_callback)
-                clip_vision_name = "clip_vision_h.safetensors"
-                clip_vision = wan_bricks.load_clip_vision(clip_vision_name)
-                log.info("wan22_i2v_clip_vision_loaded", {"clip_vision_name": clip_vision_name})
+                clip_vision = wan_bricks.load_clip_vision("clip_vision_h.safetensors")
+                log.info("wan22_i2v_clip_vision_loaded", {"clip_vision_name": "clip_vision_h.safetensors"})
 
                 # 2. Get previous frame and encode with CLIP Vision
                 await self.update_progress(40.0, progress_callback)
-                previous_frame = None
-                clip_vision_output = None
-                start_image = None
 
                 if project_id:
-                    project_frames = await self.frame_service.get_frames_by_project_id(project_id)
+                    previous_frame = None
+                    clip_vision_output = None
+                    start_image = None
+
+                    project_frames = await self.frame_service.get_frames_by_project(project_id)
                     if project_frames:
                         sorted_frames = sorted(project_frames, key=lambda f: f.id)
                         previous_frame = sorted_frames[-1]
@@ -398,6 +374,10 @@ class Wan22I2VLoader:
                             log.warning("wan22_i2v_previous_frame_not_found", {"path": previous_frame.path})
                     else:
                         log.warning("wan22_i2v_no_previous_frame", {"project_id": project_id})
+                else:
+                    previous_frame = None
+                    clip_vision_output = None
+                    start_image = None
 
                 # 3. Load VAE wan_2.1
                 await self.update_progress(45.0, progress_callback)
@@ -450,28 +430,26 @@ class Wan22I2VLoader:
 
                 # Load and apply LoRA for HIGH model
                 # Apply FusionX LoRA
-                fusion_x_path = os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)
-                if os.path.exists(fusion_x_path):
+                if os.path.exists(os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)):
                     high_model = comfy_bricks.load_lora_model_only(
-                        fusion_x_path,
+                        os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X),
                         high_model,
                         strength_model=1.0
                     )
                     log.info("wan22_i2v_high_fusionx_lora_applied", {"lora": SYS_LORA_WAN_2_1_FUSION_X})
                 else:
-                    log.warning("wan22_i2v_high_fusionx_lora_not_found", {"path": fusion_x_path})
+                    log.warning("wan22_i2v_high_fusionx_lora_not_found", {"path": os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)})
 
                 # Apply Lightning I2V HIGH LoRA
-                lightning_high_path = os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH)
-                if os.path.exists(lightning_high_path):
+                if os.path.exists(os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH)):
                     high_model = comfy_bricks.load_lora_model_only(
-                        lightning_high_path,
+                        os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH),
                         high_model,
                         strength_model=1.0
                     )
                     log.info("wan22_i2v_high_lightning_lora_applied", {"lora": SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH})
                 else:
-                    log.warning("wan22_i2v_high_lightning_lora_not_found", {"path": lightning_high_path})
+                    log.warning("wan22_i2v_high_lightning_lora_not_found", {"path": os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_HIGH)})
 
                 # Apply user-specified HIGH LoRAs
                 if high_loras and len(high_loras) > 0:
@@ -481,14 +459,13 @@ class Wan22I2VLoader:
                             continue
 
                         strength_model = lora_config.get('strength_model', 1.0)
-                        lora_path = os.path.join(Config.MODELS_DIR, "Lora", lora_name)
 
-                        if not os.path.exists(lora_path):
-                            log.warning("wan22_i2v_high_user_lora_not_found", {"lora_path": lora_path})
+                        if not os.path.exists(os.path.join(Config.MODELS_DIR, "Lora", lora_name)):
+                            log.warning("wan22_i2v_high_user_lora_not_found", {"lora_path": os.path.join(Config.MODELS_DIR, "Lora", lora_name)})
                             continue
 
                         high_model = comfy_bricks.load_lora_model_only(
-                            lora_path,
+                            os.path.join(Config.MODELS_DIR, "Lora", lora_name),
                             high_model,
                             strength_model=strength_model
                         )
@@ -503,13 +480,13 @@ class Wan22I2VLoader:
                     latent=latent_video,
                     positive=positive,
                     negative=negative,
-                    steps=4,
-                    cfg=1.0,
+                    steps=WAN22_STEPS,
+                    cfg=WAN22_CFG_SCALE,
                     sampler_name='dpmpp_2m_sde',
                     scheduler='sgm_uniform',
                     seed=current_seed,
                     start_step=0,
-                    last_step=2,
+                    last_step=WAN22_SPLIT,
                     disable_noise=False
                 )
                 log.info("wan22_i2v_high_sampling_completed")
@@ -527,28 +504,26 @@ class Wan22I2VLoader:
 
                 # Load and apply LoRA for LOW model
                 # Apply FusionX LoRA
-                fusion_x_path = os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)
-                if os.path.exists(fusion_x_path):
+                if os.path.exists(os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)):
                     low_model = comfy_bricks.load_lora_model_only(
-                        fusion_x_path,
+                        os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X),
                         low_model,
                         strength_model=1.0
                     )
                     log.info("wan22_i2v_low_fusionx_lora_applied", {"lora": SYS_LORA_WAN_2_1_FUSION_X})
                 else:
-                    log.warning("wan22_i2v_low_fusionx_lora_not_found", {"path": fusion_x_path})
+                    log.warning("wan22_i2v_low_fusionx_lora_not_found", {"path": os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_1_FUSION_X)})
 
                 # Apply Lightning I2V LOW LoRA
-                lightning_low_path = os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW)
-                if os.path.exists(lightning_low_path):
+                if os.path.exists(os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW)):
                     low_model = comfy_bricks.load_lora_model_only(
-                        lightning_low_path,
+                        os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW),
                         low_model,
                         strength_model=1.0
                     )
                     log.info("wan22_i2v_low_lightning_lora_applied", {"lora": SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW})
                 else:
-                    log.warning("wan22_i2v_low_lightning_lora_not_found", {"path": lightning_low_path})
+                    log.warning("wan22_i2v_low_lightning_lora_not_found", {"path": os.path.join(Config.MODELS_DIR, "SysLora", SYS_LORA_WAN_2_2_LIGHTNING_I2V_LOW)})
 
                 # Apply user-specified LOW LoRAs
                 if low_loras and len(low_loras) > 0:
@@ -558,14 +533,13 @@ class Wan22I2VLoader:
                             continue
 
                         strength_model = lora_config.get('strength_model', 1.0)
-                        lora_path = os.path.join(Config.MODELS_DIR, "Lora", lora_name)
 
-                        if not os.path.exists(lora_path):
-                            log.warning("wan22_i2v_low_user_lora_not_found", {"lora_path": lora_path})
+                        if not os.path.exists(os.path.join(Config.MODELS_DIR, "Lora", lora_name)):
+                            log.warning("wan22_i2v_low_user_lora_not_found", {"lora_path": os.path.join(Config.MODELS_DIR, "Lora", lora_name)})
                             continue
 
                         low_model = comfy_bricks.load_lora_model_only(
-                            lora_path,
+                            os.path.join(Config.MODELS_DIR, "Lora", lora_name),
                             low_model,
                             strength_model=strength_model
                         )
@@ -580,12 +554,12 @@ class Wan22I2VLoader:
                     latent=high_latent_video,
                     positive=positive,
                     negative=negative,
-                    steps=4,
-                    cfg=1.0,
+                    steps=WAN22_STEPS,
+                    cfg=WAN22_CFG_SCALE,
                     sampler_name='dpmpp_2m_sde',
                     scheduler='sgm_uniform',
                     seed=current_seed,
-                    start_step=2,
+                    start_step=WAN22_SPLIT,
                     last_step=10000,
                     disable_noise=True
                 )
@@ -682,10 +656,9 @@ class Wan22I2VLoader:
                         'height': height,
                         'num_frames': num_frames,
                         'seed': current_seed,
-                        'model_name': model_name,  # Keep for reference but not user-configurable
+                        'model_name': WAN22_HIGH_NOISE_MODEL,  # Keep for reference but not user-configurable
                         'num_variants': data.get('num_variants', 1),
                         'total_frames': len(saved_paths),  # Actual number of saved frames
-                        'steps': steps,  # Constant, for reference
                         'high_loras': high_loras,  # User-specified LoRAs for HIGH model
                         'low_loras': low_loras  # User-specified LoRAs for LOW model
                     },
@@ -763,7 +736,7 @@ class Wan22I2VLoader:
                 'width': {
                     'type': 'integer',
                     'required': False,
-                    'default': 512,
+                    'default': 256,
                     'min': 256,
                     'max': 1024,
                     'step': 64,
@@ -772,7 +745,7 @@ class Wan22I2VLoader:
                 'height': {
                     'type': 'integer',
                     'required': False,
-                    'default': 512,
+                    'default': 256,
                     'min': 256,
                     'max': 1024,
                     'step': 64,
@@ -781,7 +754,7 @@ class Wan22I2VLoader:
                 'num_frames': {
                     'type': 'integer',
                     'required': False,
-                    'default': 81,
+                    'default': 17,
                     'min': 5,
                     'max': 121,
                     'step': 4,
