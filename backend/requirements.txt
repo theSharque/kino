@@ -2,7 +2,7 @@
 --pre
 
 # Kino backend dependencies
-aiohttp==3.12.15
+aiohttp==3.13.3
 aiohttp-cors==0.8.1
 aiohttp-pydantic==2.5.2
 pydantic==2.11.7
