@@ -8,7 +8,7 @@ aiohttp-pydantic==2.5.2
 pydantic==2.11.7
 python-multipart==0.0.20
 aiosqlite==0.21.0
-python-dotenv==1.1.1
+python-dotenv==1.2.2
 packaging==25.0
 psutil==7.0.0
 nvidia-ml-py3==7.352.0
